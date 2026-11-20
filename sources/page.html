@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PageLibre</title>
+<meta name="description" content="PageLibre : logiciel libre et gratuit de mise en page (affiches, fiches, brochures), dans le navigateur. Ouvre aussi les anciens fichiers .pub.">
+<meta name="theme-color" content="#23405e">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="logo.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<style id="css-rendu">
+/*CSSRENDU*/
+</style>
+<style>
+/*CSS*/
+</style>
+</head>
+<body>
+<div id="app">
+  <header id="barre-titre">
+    <div class="acces-rapide">
+      <span class="logo-app" aria-hidden="true">/*LOGO*/</span>
+      <button class="qa" data-cmd="enregistrer" title="Enregistrer (Ctrl+S)" data-icone="disquette"></button>
+      <button class="qa" data-cmd="annuler" title="Annuler (Ctrl+Z)" data-icone="annuler"></button>
+      <button class="qa" data-cmd="refaire" title="Rétablir (Ctrl+Y)" data-icone="refaire"></button>
+    </div>
+    <div id="titre-doc">PageLibre</div>
+    <div class="titre-droite"><span id="indic-sauvegarde"></span><button id="bouton-installer" class="bouton-installer" hidden title="Installer PageLibre sur cet ordinateur (fonctionne ensuite hors connexion)">Installer l'application</button></div>
+  </header>
+  <nav id="onglets" role="tablist">
+    <button class="onglet onglet-fichier" data-onglet="fichier">Fichier</button>
+    <button class="onglet actif" data-onglet="accueil">Accueil</button>
+    <button class="onglet" data-onglet="insertion">Insertion</button>
+    <button class="onglet" data-onglet="creation">Création de page</button>
+    <button class="onglet" data-onglet="affichage">Affichage</button>
+    <span id="onglets-contexte"></span>
+  </nav>
+  <div id="ruban"></div>
+  <div id="corps">
+    <aside id="volet-pages">
+      <div class="volet-titre">Pages</div>
+      <div id="liste-pages"></div>
+    </aside>
+    <section id="zone">
+      <canvas id="regle-h" height="22"></canvas>
+      <canvas id="regle-v" width="22"></canvas>
+      <div id="coin-regles"></div>
+      <div id="defile" tabindex="-1">
+        <div id="scene">
+          <div id="feuille-hote"></div>
+          <div id="calque-ui"></div>
+        </div>
+      </div>
+    </section>
+  </div>
+  <footer id="etat">
+    <div class="etat-gauche">
+      <span id="etat-page">Page : 1 sur 1</span>
+      <span class="etat-sep"></span>
+      <span id="etat-pos" title="Position de l'objet"></span>
+      <span id="etat-taille" title="Taille de l'objet"></span>
+    </div>
+    <div class="etat-droite">
+      <button class="etat-btn" data-cmd="zoomPage" title="Page entière" data-icone="pageEntiere"></button>
+      <button class="etat-btn" data-cmd="zoomMoins" title="Zoom arrière">−</button>
+      <input id="curseur-zoom" type="range" min="10" max="400" step="1" value="100" aria-label="Zoom">
+      <button class="etat-btn" data-cmd="zoomPlus" title="Zoom avant">+</button>
+      <button id="etat-zoom" class="etat-btn" data-cmd="zoom100" title="Zoom 100 %">100 %</button>
+    </div>
+  </footer>
+</div>
+
+<div id="coulisses" hidden>
+  <nav class="coul-nav">
+    <button class="coul-retour" data-cmd="fermerCoulisses" title="Retour au document">&#x2190;</button>
+    <button class="coul-item" data-vue="nouveau">Nouveau</button>
+    <button class="coul-item" data-vue="ouvrir">Ouvrir</button>
+    <button class="coul-item" data-cmd="enregistrer">Enregistrer</button>
+    <button class="coul-item" data-cmd="enregistrerSous">Enregistrer sous</button>
+    <button class="coul-item" data-vue="imprimer">Imprimer / PDF</button>
+    <button class="coul-item" data-vue="exporter">Exporter</button>
+    <button class="coul-item" data-vue="infos">Informations</button>
+    <button class="coul-item" data-vue="apropos">À propos</button>
+  </nav>
+  <div class="coul-contenu" id="coul-contenu"></div>
+</div>
+
+<div id="menu" class="menu" hidden></div>
+<div id="voile" hidden></div>
+<div id="boite" class="boite" hidden role="dialog" aria-modal="true"></div>
+<div id="bandeau" hidden></div>
+<div id="glisser-ici" hidden><div>Déposez ici un fichier .pub, un document .pagelibre ou .html, ou une image</div></div>
+<input type="file" id="entree-fichier" hidden>
+<div id="impression"></div>
+
+<script id="fiche-integree" type="application/json">null</script>
+<script>
+/*JS*/
+</script>
+</body>
+</html>

@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Aperçu de rendu</title>
+<link rel="stylesheet" href="../sources/rendu.css">
+<style>
+  body { margin: 0; background: #888; }
+  .feuille { margin: 0 0 10px 0; box-shadow: 0 0 4px #0006; }
+</style>
+</head>
+<body>
+<div id="sortie"></div>
+<script src="../sources/lecteur_pub.js"></script>
+<script src="../sources/rendu.js"></script>
+<script src="../sources/metafichier.js"></script>
+<script>
+  window.afficherPub = function (b64, nom, numPage, zoom) {
+    if (zoom) { const s = document.getElementById('sortie'); s.style.cssText = `display:flex;flex-wrap:wrap;gap:10px;width:${Math.round(1700 / zoom)}px;zoom:${zoom}`; }
+    const bin = atob(b64);
+    const u8 = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+    const fiche = LecteurPub.lirePub(u8, { nom });
+    window.fiche = fiche;
+    const s = document.getElementById('sortie');
+    s.innerHTML = '';
+    const pages = numPage != null ? [fiche.pages[numPage]] : fiche.pages;
+    for (const p of pages) s.appendChild(Rendu.page(p, fiche));
+    return { pages: fiche.pages.length, w: fiche.page.w, h: fiche.page.h };
+  };
+</script>
+</body>
+</html>

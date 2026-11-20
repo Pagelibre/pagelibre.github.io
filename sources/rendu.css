@@ -1,0 +1,64 @@
+/* ---- Rendu des pages (affichage, vignettes, impression) ---- */
+.feuille {
+  position: relative;
+  background: #fff;
+  overflow: hidden;
+  color: #000;
+  font-family: 'Times New Roman', serif;
+  font-size: 10pt;
+  line-height: normal;
+}
+.feuille .calque-maitre, .feuille .calque-objets { position: absolute; inset: 0; }
+.feuille .calque-maitre { pointer-events: none; }
+.objet {
+  position: absolute;
+  box-sizing: border-box;
+  transform-origin: 50% 50%;
+}
+.objet > .svg-forme, .objet > .svg-wordart {
+  position: absolute; left: 0; top: 0; width: 100%; height: 100%; overflow: visible;
+}
+.objet.t-image > .clip { position: absolute; inset: 0; overflow: hidden; }
+.objet.t-image > .clip > img { position: absolute; display: block; max-width: none; user-select: none; -webkit-user-drag: none; }
+.objet.t-image > .clip.manquante {
+  background: repeating-linear-gradient(45deg, #ececec 0 6px, #dcdcdc 6px 12px);
+  display: flex; align-items: center; justify-content: center; color: #777; font: 9pt Segoe UI, sans-serif;
+}
+.cadre-texte {
+  position: absolute; inset: 0; box-sizing: border-box;
+  display: flex; flex-direction: column; justify-content: flex-start;
+}
+.cadre-texte.v-milieu { justify-content: center; }
+.cadre-texte.v-bas { justify-content: flex-end; }
+.cadre-texte.sens-haut-bas { writing-mode: vertical-rl; }
+.cadre-texte.sens-bas-haut { writing-mode: vertical-rl; transform: rotate(180deg); }
+.contenu {
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  tab-size: 12.7mm;
+  outline: none;
+  min-height: 1em;
+}
+.contenu p { margin: 0; }
+.contenu .habillage { display: block; user-select: none; }
+.contenu .hab-espace { display: inline-block; height: 1px; user-select: none; }
+.contenu .tab { display: inline-block; white-space: pre; tab-size: 0; overflow: hidden; vertical-align: baseline; }
+.contenu.cesure { hyphens: manual; -webkit-hyphens: manual; }
+.objet > .biseau { position: absolute; inset: 0; pointer-events: none; }
+.contenu.calage p { margin-top: 0 !important; margin-bottom: 0 !important; }
+.contenu.calage p, .contenu.calage span { line-height: inherit !important; }
+table.tab td.a-diagonale { position: relative; vertical-align: top; }
+table.tab td.a-diagonale .diag-haut { margin-left: 45%; min-height: 1em; }
+table.tab td.a-diagonale .diag-bas { position: absolute; left: 1mm; bottom: 1mm; right: 45%; min-height: 1em; }
+.contenu .lettrine { float: left; line-height: .82; margin: .06em .08em 0 0; }
+.contenu a { color: #0563c1; }
+.cadre-texte.colonnes { justify-content: flex-start; overflow: hidden; }
+.cadre-texte.colonnes > .contenu { min-height: 0; }
+.contenu .puce { user-select: none; }
+.contenu.sens-haut-bas { writing-mode: vertical-rl; }
+.contenu.sens-bas-haut { writing-mode: vertical-rl; transform: rotate(180deg); }
+.objet.t-tableau > table.tab {
+  width: 100%; height: 100%;
+  table-layout: fixed; border-collapse: collapse; border-spacing: 0;
+}
+table.tab td { vertical-align: top; overflow: hidden; box-sizing: border-box; }
