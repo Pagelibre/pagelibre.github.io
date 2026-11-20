@@ -24,7 +24,8 @@ const serveur = http.createServer((req, rep) => {
 (async () => {
   await new Promise(r => serveur.listen(0, '127.0.0.1', r));
   // comme sur GitHub Pages : l'application est dans un sous-dossier
-  const url = `http://127.0.0.1:${serveur.address().port}/pagelibre/`;
+  // (variable PAGELIBRE_URL=https://michto-p.github.io/pagelibre/ : contrôle du site réellement en ligne)
+  const url = process.env.PAGELIBRE_URL || `http://127.0.0.1:${serveur.address().port}/pagelibre/`;
   const edge = await lancer({ largeur: 1400, hauteur: 850 });
   try {
     await edge.ouvrir(url);

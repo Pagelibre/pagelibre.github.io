@@ -3,7 +3,7 @@
 **Logiciel libre et gratuit de mise en page, dans le navigateur.**
 Affiches, fiches, brochures, attestations… avec un ruban, des pages, des cadres de texte et d'image, comme dans un logiciel de PAO classique. Il s'installe comme une application, fonctionne hors connexion, et **vos documents restent sur votre ordinateur**.
 
-👉 **Utiliser PageLibre : https://Michto-p.github.io/pagelibre/**
+👉 **Utiliser PageLibre : https://pagelibre.github.io/**
 
 ![PageLibre : édition d'une fiche](captures/editeur.png)
 
@@ -20,7 +20,7 @@ Affiches, fiches, brochures, attestations… avec un ruban, des pages, des cadre
 
 ## Installer l'application
 
-1. Ouvrez **https://Michto-p.github.io/pagelibre/** dans **Microsoft Edge** ou **Google Chrome**.
+1. Ouvrez **https://pagelibre.github.io/** dans **Microsoft Edge** ou **Google Chrome**.
 2. Cliquez sur le bouton jaune **« Installer l'application »** (en haut à droite), ou sur l'icône d'installation dans la barre d'adresse.
 3. PageLibre apparaît dans le menu Démarrer, s'ouvre dans sa propre fenêtre et **fonctionne sans Internet**. Les fichiers `.pagelibre` et `.pub` s'ouvrent ensuite d'un double-clic.
 
@@ -39,7 +39,7 @@ Firefox ne sait pas installer d'application sur ordinateur, mais PageLibre y fon
 
 ## Confidentialité
 
-Aucune donnée n'est collectée : pas de compte, pas de cookies, pas de statistiques, pas de publicité. Tout reste sur votre appareil. Voir [la page Confidentialité](https://Michto-p.github.io/pagelibre/confidentialite.html).
+Aucune donnée n'est collectée : pas de compte, pas de cookies, pas de statistiques, pas de publicité. Tout reste sur votre appareil. Voir [la page Confidentialité](https://pagelibre.github.io/confidentialite.html).
 
 ## Développement
 
