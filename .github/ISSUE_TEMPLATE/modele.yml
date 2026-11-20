@@ -1,0 +1,30 @@
+name: Proposer un modèle
+description: Partager une fiche pour la bibliothèque de modèles de PageLibre.
+title: "[Modèle] "
+labels: ["modèle"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Joignez votre document **.pagelibre** (ou une capture). Le modèle doit être **générique** : aucun nom de personne, d'élève ou d'établissement, aucune photo de personne. En le proposant, vous acceptez qu'il soit diffusé sous la licence de PageLibre (GPL v3).
+  - type: input
+    id: nom
+    attributes:
+      label: Nom du modèle
+      placeholder: "Fiche de suivi de chantier"
+    validations:
+      required: true
+  - type: textarea
+    id: usage
+    attributes:
+      label: À quoi sert-il ?
+      description: Pour qui, dans quelle situation.
+    validations:
+      required: true
+  - type: textarea
+    id: fichier
+    attributes:
+      label: Fichier .pagelibre ou capture
+      description: Glissez le fichier ici (renommez-le en .txt si GitHub le refuse).
+    validations:
+      required: true

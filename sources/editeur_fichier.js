@@ -257,7 +257,12 @@ function afficherVueCoulisses(vue) {
       const k = 90 / Math.max(w, h);
       return `<button class="modele" data-w="${w}" data-h="${h}"><div class="apercu" style="width:${w * k}px;height:${h * k}px"></div>${n}</button>`;
     }).join('')}</div>
-    <h2>Modèles</h2><div class="modeles" id="modeles-liste"></div>`;
+    <h2>Modèles</h2><div class="modeles" id="modeles-liste"></div>
+    <h2>Mes modèles</h2><div class="modeles" id="mes-modeles"></div>
+    <p class="actions-modeles"><button class="bouton" data-cmd-modele="enregistrer">${ic('modele16')} Enregistrer la fiche actuelle comme modèle</button>
+      <button class="bouton" data-cmd-modele="importer">Importer un modèle (.pagelibre)</button>
+      ${DEPOT_URL ? `<a href="${esc(DEPOT_URL)}/issues/new?template=modele.yml" target="_blank" rel="noopener">Proposer un modèle à la bibliothèque de PageLibre</a>` : ''}</p>`;
+    afficherMesModeles(c);
     // aperçus des modèles : rendus en miniature
     const zm = $('#modeles-liste');
     for (const [cle, M] of Object.entries(MODELES)) {
@@ -277,6 +282,9 @@ function afficherVueCoulisses(vue) {
       zm.appendChild(b);
     }
     c.onclick = ev => {
+      const cm = ev.target.closest('[data-cmd-modele]');
+      if (cm) { if (cm.dataset.cmdModele === 'enregistrer') enregistrerCommeModele(); else importerModele(); return; }
+      if (ev.target.closest('#mes-modeles')) return; // géré par afficherMesModeles
       const bm = ev.target.closest('[data-modele]');
       if (bm) { nouveauDepuisModele(bm.dataset.modele); return; }
       const b = ev.target.closest('.modele');
@@ -330,7 +338,7 @@ function afficherVueCoulisses(vue) {
   } else if (vue === 'apropos') {
     c.innerHTML = `<h1>À propos</h1>
       <div style="display:flex;gap:18px;align-items:center;margin-bottom:12px"><span style="width:64px;height:64px;display:inline-block">${LOGO_SVG}</span>
-        <div><div style="font-size:24px;font-weight:600;color:#23405e">PageLibre</div><div style="color:#666">Version ${esc(VERSION_EDITEUR.replace('T', ' à '))}</div></div></div>
+        <div><div style="font-size:24px;font-weight:600;color:#23405e">PageLibre</div><div style="color:#666">Version ${esc(VERSION_NOM)} (${esc(VERSION_EDITEUR.replace('T', ' à '))}) · <button class="lien-bouton" data-nouveautes>Quoi de neuf ?</button></div></div></div>
       <p>Logiciel libre et gratuit de mise en page : affiches, fiches, brochures, attestations. Il fonctionne dans le navigateur, s'installe comme une application et marche hors connexion.</p>
       <p><b>Vos documents restent sur votre appareil</b> : rien n'est envoyé sur Internet. <a href="confidentialite.html" target="_blank" rel="noopener">Confidentialité</a></p>
       <h2>Licence</h2>
@@ -339,7 +347,12 @@ function afficherVueCoulisses(vue) {
       ${LIEN_SOUTIEN ? `<p>Soutenir le projet : <a href="${esc(LIEN_SOUTIEN)}" target="_blank" rel="noopener">${esc(LIEN_SOUTIEN)}</a></p>` : ''}
       <h2>Compatibilité</h2>
       <p>PageLibre ouvre les fichiers .pub créés avec Microsoft Publisher (versions 2003 à 2019) pour qu'on puisse continuer à les modifier.</p>
-      <p style="color:#777">PageLibre n'est pas affilié à Microsoft. Microsoft et Publisher sont des marques de Microsoft Corporation, citées uniquement pour indiquer la compatibilité des fichiers.</p>`;
+      <p style="color:#777">PageLibre n'est pas affilié à Microsoft. Microsoft et Publisher sont des marques de Microsoft Corporation, citées uniquement pour indiquer la compatibilité des fichiers.</p>
+      <h2>Composants libres intégrés</h2>
+      <p>Polices Carlito, Caladea, Arimo et Tinos (SIL Open Font License 1.1, <a href="licence-polices.txt" target="_blank" rel="noopener">texte de la licence</a>) ; lecteur de PDF pdf.js de Mozilla (licence Apache 2.0), pour l'import des pages d'un PDF.</p>`;
+    c.onclick = ev => { if (ev.target.closest('[data-nouveautes]')) afficherNouveautes(true); };
+  } else if (vue === 'aide') {
+    vueAide(c);
     c.onclick = null;
   } else {
     const nbObjets = E.fiche.pages.reduce((t, p) => t + p.items.length, 0);
@@ -406,7 +419,8 @@ function demarrer() {
   initGuides();
   initDepot();
   initPWA();
-  chargerFiche(E.fiche, { nom: fiche ? decodeURIComponent(location.pathname.split('/').pop() || '') : null });
+  initPlus4();
+  chargerFiche(E.fiche,{ nom: fiche ? decodeURIComponent(location.pathname.split('/').pop() || '') : null });
   appliquerOptions();
   noterOutil(!!fiche);
   if (fiche) proposerNouvelleVersion();

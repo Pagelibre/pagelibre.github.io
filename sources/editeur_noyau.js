@@ -64,6 +64,8 @@ function normaliserFiche(f) {
     }
   }
   delete f.avertissements;
+  // un document peut venir de n'importe qui : on ne garde que la mise en forme (securite.js)
+  assainirFiche(f);
   return f;
 }
 

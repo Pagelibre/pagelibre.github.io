@@ -2,6 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="/*CSP*/">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>PageLibre</title>
 <meta name="description" content="PageLibre : logiciel libre et gratuit de mise en page (affiches, fiches, brochures), dans le navigateur. Ouvre aussi les anciens fichiers .pub.">
@@ -81,6 +82,7 @@
     <button class="coul-item" data-vue="imprimer">Imprimer / PDF</button>
     <button class="coul-item" data-vue="exporter">Exporter</button>
     <button class="coul-item" data-vue="infos">Informations</button>
+    <button class="coul-item" data-vue="aide">Aide</button>
     <button class="coul-item" data-vue="apropos">À propos</button>
   </nav>
   <div class="coul-contenu" id="coul-contenu"></div>
@@ -92,6 +94,7 @@
 <div id="bandeau" hidden></div>
 <div id="glisser-ici" hidden><div>Déposez ici un fichier .pub, un document .pagelibre ou .html, ou une image</div></div>
 <input type="file" id="entree-fichier" hidden>
+<div id="annonce" class="lecteur-ecran" aria-live="polite"></div>
 <div id="impression"></div>
 
 <script id="fiche-integree" type="application/json">null</script>

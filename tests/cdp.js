@@ -57,6 +57,7 @@ async function lancer(options = {}) {
   const api = {
     envoyer,
     consoleMsgs,
+    surEvenement(methode, fn) { ecouteurs.push(m => { if (m.method === methode) fn(m.params); }); },
     async ouvrir(url) {
       const charge = new Promise(r => { const f = m => { if (m.method === 'Page.loadEventFired') { ecouteurs.splice(ecouteurs.indexOf(f), 1); r(); } }; ecouteurs.push(f); });
       await envoyer('Page.navigate', { url });

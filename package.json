@@ -1,10 +1,11 @@
 {
   "name": "pagelibre",
+  "version": "1.1.0",
   "description": "Logiciel libre et gratuit de mise en page, dans le navigateur (application installable).",
   "private": true,
   "license": "GPL-3.0-or-later",
   "scripts": {
     "build": "node build.js",
-    "test": "node tests/test_pwa.js"
+    "test": "node tests/tout.js"
   }
 }

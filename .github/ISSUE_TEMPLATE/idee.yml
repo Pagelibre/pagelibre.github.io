@@ -1,0 +1,17 @@
+name: Proposer une idée
+description: Une fonction qui manque, une amélioration.
+title: "[Idée] "
+labels: ["idée"]
+body:
+  - type: textarea
+    id: besoin
+    attributes:
+      label: De quoi auriez-vous besoin ?
+      description: Décrivez ce que vous voulez faire (le besoin), plutôt que la solution.
+      placeholder: "Je prépare des fiches de TP et j'aimerais…"
+    validations:
+      required: true
+  - type: textarea
+    id: comment
+    attributes:
+      label: Comment l'imaginez-vous ? (facultatif)

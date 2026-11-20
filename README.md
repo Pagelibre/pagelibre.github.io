@@ -13,7 +13,12 @@ Affiches, fiches, brochures, attestations… avec un ruban, des pages, des cadre
 - **Texte soigné** : styles liés, puces et numérotation automatique, lettrines, colonnes, taquets de tabulation (gauche, centré, droite, décimal), césure française, espacement des caractères, cadres chaînés (le texte continue d'un cadre à l'autre), habillage autour des images (carré ou serré).
 - **Mise en page précise** : règles, guides magnétiques, grille de mise en page, lignes de base, alignement et répartition, affichage deux pages.
 - **Effets** : ombres, lueur, reflet, biseau, profondeur et rotation 3D, dégradés, transparence ; jeux de couleurs et de polices.
-- **Modèles prêts à l'emploi** : fiche de TP, fiche d'évaluation, fiche de procédure, affiche A3, attestation.
+- **Modèles prêts à l'emploi** : fiche de TP, fiche d'évaluation, fiche de procédure, QCM, consignes de sécurité, déroulé de séance, planning, affiche A3, attestation ; et **vos propres modèles** (Fichier › Nouveau › Mes modèles).
+- **Pareil partout** : polices libres intégrées aux mêmes mesures que Calibri, Cambria, Arial et Times New Roman (Carlito, Caladea, Arimo, Tinos) ; une fiche s'affiche de la même façon sur tous les ordinateurs, et dans les PDF.
+- **Léger** : les images sont allégées à l'insertion ; « Compresser les images » réduit tout le document pour un mail ou un ENT.
+- **Pages d'un PDF en fond** : pour écrire par-dessus un document existant ou scanné.
+- **Tablette** : défilement au doigt, zoom à deux doigts, poignées plus grandes au toucher.
+- **Accessible** : texte de remplacement des images, navigation au clavier (Tab, F6), vérificateur d'accessibilité, aide intégrée (F1).
 - **Anciens fichiers .pub** : PageLibre ouvre les fichiers .pub (versions 2003 à 2019) pour continuer à les modifier — y compris les images vectorielles EMF/WMF qu'ils contiennent. Le fichier d'origine n'est jamais modifié.
 
 ![Modèles](captures/modeles.png)
@@ -39,13 +44,20 @@ Firefox ne sait pas installer d'application sur ordinateur, mais PageLibre y fon
 
 ## Confidentialité
 
-Aucune donnée n'est collectée : pas de compte, pas de cookies, pas de statistiques, pas de publicité. Tout reste sur votre appareil. Voir [la page Confidentialité](https://pagelibre.github.io/confidentialite.html).
+Aucune donnée n'est collectée : pas de compte, pas de cookies, pas de statistiques, pas de publicité. Tout reste sur votre appareil.
+Un document reçu de quelqu'un est nettoyé à l'ouverture (seul le contenu mis en forme est gardé) et la page n'exécute que le code de PageLibre (règle de sécurité CSP). Voir [la page Confidentialité](https://pagelibre.github.io/confidentialite.html).
 
 ## Développement
 
 - `sources/` : le code (JavaScript sans dépendance, sans étape de compilation).
 - `node build.js` : assemble le site dans `docs/` (publié par GitHub Pages) et l'application en un seul fichier `dist/PageLibre.html`.
-- `tests/` : tests de bout en bout dans Edge sans fenêtre (`node tests/test_pwa.js`, etc.).
+- `tests/` : tests de bout en bout dans Edge sans fenêtre : `node tests/tout.js`. Ils tournent sur GitHub à chaque envoi ; le site n'est mis en ligne que s'ils passent.
+- Composants intégrés : polices Carlito, Caladea, Arimo, Tinos (SIL OFL 1.1, `sources/polices/LICENCE.txt`) ; pdf.js de Mozilla 4.10.38 (Apache 2.0, `sources/vendor/pdfjs/`), chargé seulement pour importer un PDF.
+- Contribuer : voir [CONTRIBUTING.md](CONTRIBUTING.md). Nouveautés de chaque version : [CHANGELOG.md](CHANGELOG.md).
+
+## Signaler un problème, proposer une idée
+
+[Ouvrir un ticket](../../issues/new/choose) : problème, idée ou modèle à partager. Ce qui est écrit dans un ticket est public : n'y mettez aucune donnée personnelle.
 
 ## Licence
 

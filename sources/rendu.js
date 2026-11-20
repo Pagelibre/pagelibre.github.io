@@ -589,7 +589,7 @@
 
   function objet(o, fiche, ctx) {
     const d = document.createElement('div');
-    d.className = 'objet t-' + o.type;
+    d.className = 'objet t-' + o.type + (o.arrierePlan ? ' fond-page' : '');
     d.dataset.id = o.id;
     styleBoite(d, o);
     const filtres = [];
@@ -614,7 +614,7 @@
           const im = document.createElement('img');
           im.src = src;
           im.draggable = false;
-          im.alt = '';
+          im.alt = o.alt || ''; // texte de remplacement (lecteurs d'écran, PDF accessibles) ; vide = image décorative
           const [ha, dr, ba, ga] = o.rognage || [0, 0, 0, 0];
           const lw = 1 - ga - dr, lh = 1 - ha - ba;
           im.style.width = (100 / (lw || 1)) + '%';

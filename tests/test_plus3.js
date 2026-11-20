@@ -100,7 +100,7 @@ function verifier(c, m) { if (c) { ok++; console.log('  ok  ', m); } else { ko++
     }
     await edge.eval(`ouvrirCoulisses('nouveau')`);
     await attendre(300);
-    verifier(await edge.eval(`document.querySelectorAll('#modeles-liste .modele').length === 5`), 'Fichier › Nouveau : 5 modèles avec aperçu');
+    verifier(await edge.eval(`document.querySelectorAll('#modeles-liste .modele').length === Object.keys(MODELES).length && Object.keys(MODELES).length >= 9`), 'Fichier › Nouveau : tous les modèles (9) avec aperçu');
     await cap('05-nouveau');
 
     const erreurs = edge.consoleMsgs.filter(m => /EXCEPTION|Error/i.test(m));

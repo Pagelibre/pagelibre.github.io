@@ -335,7 +335,7 @@ function proposerNouvelleVersion() {
   if (!o || !(o.version > VERSION_EDITEUR) || o.url === location.href) return;
   const bd = $('#bandeau');
   bd.dataset.type = 'version';
-  bd.innerHTML = `<span>Une version plus récente de l'PageLibre est disponible (${esc(o.version.slice(0, 10).split('-').reverse().join('/'))}).</span><button class="bouton principal" data-v>Ouvrir cette fiche avec la nouvelle version</button><button class="bouton" data-n>Plus tard</button>`;
+  bd.innerHTML = `<span>Une version plus récente de PageLibre est disponible (${esc(o.version.slice(0, 10).split('-').reverse().join('/'))}).</span><button class="bouton principal" data-v>Ouvrir cette fiche avec la nouvelle version</button><button class="bouton" data-n>Plus tard</button>`;
   bd.hidden = false;
   $('[data-n]', bd).onclick = () => { bd.hidden = true; };
   $('[data-v]', bd).onclick = async () => {

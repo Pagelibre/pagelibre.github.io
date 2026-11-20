@@ -488,7 +488,7 @@ function menuStyles(b) {
   const perso = (E.fiche.styles || []).filter(p => !STYLES_BASE.some(s => s.nom === p.nom));
   const ech = st => `font-family:'${st.police}';font-size:${Math.min(st.taille, 16)}pt;${st.gras ? 'font-weight:bold;' : ''}${st.italique ? 'font-style:italic;' : ''}${st.couleur ? 'color:' + st.couleur : ''}`;
   const d = document.createElement('div');
-  d.innerHTML = tous.map((st, i) => `<button class="menu-item" data-i="${i}"><span style="${ech(st)}">${esc(st.nom)}</span></button>`).join('');
+  d.innerHTML = tous.map((st, i) => `<button class="menu-item" data-i="${i}"><span style="${esc(ech(st))}">${esc(st.nom)}</span></button>`).join('');
   d.addEventListener('mousedown', ev => ev.preventDefault());
   d.addEventListener('click', ev => {
     const x = ev.target.closest('[data-i]');

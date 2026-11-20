@@ -351,3 +351,41 @@ select.champ:focus, input.champ:focus { outline: 1px solid var(--vert); border-c
   #impression .planche:last-child { break-after: auto; page-break-after: auto; }
   #impression .feuille::after { display: none; }
 }
+
+/* ---- quatrième série : accessibilité, tablette, modèles, aide ---- */
+.lecteur-ecran { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; }
+button:focus-visible, .vignette:focus-visible, select:focus-visible, input:focus-visible, a:focus-visible { outline: 2px solid #f0b400; outline-offset: 1px; }
+#feuille-hote .objet.fond-page { pointer-events: none; }
+/* tablette : défilement et zoom gérés par PageLibre (un doigt, deux doigts) */
+#defile { touch-action: none; }
+body.tactile .poignee { width: 22px; height: 22px; margin: -11px 0 0 -11px; }
+body.tactile .poignee.p-rot { width: 30px; height: 30px; margin: -15px 0 0 -15px; }
+body.tactile .poignee.p-rot::after { font-size: 18px; }
+body.tactile .bord-sel.bord-h { top: -16px; height: 16px; }
+body.tactile .bord-sel.bord-b { bottom: -16px; height: 16px; }
+body.tactile .bord-sel.bord-g { left: -16px; width: 16px; }
+body.tactile .bord-sel.bord-d { right: -16px; width: 16px; }
+body.tactile .poignee-rog.r-nw, body.tactile .poignee-rog.r-ne, body.tactile .poignee-rog.r-se, body.tactile .poignee-rog.r-sw { width: 22px; height: 22px; margin: -11px 0 0 -11px; }
+body.tactile .sep-col { width: 18px; margin-left: -6px; }
+body.tactile .sep-lig { height: 18px; margin-top: -6px; }
+@media (pointer: coarse) { #ruban .btn { min-height: 30px; } .menu-item { min-height: 36px; } }
+/* mes modèles */
+.mon-modele { position: relative; }
+.suppr-modele { position: absolute; top: 2px; right: 2px; width: 20px; height: 20px; line-height: 20px; border-radius: 50%; background: #fff; border: 1px solid #bbb; color: #a33; font-size: 12px; display: none; }
+.mon-modele:hover .suppr-modele, .mon-modele:focus-within .suppr-modele, body.tactile .suppr-modele { display: block; }
+#mes-modeles .vide { color: #777; margin: 0; }
+.actions-modeles { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 12px; }
+.actions-modeles .bouton svg { width: 16px; height: 16px; vertical-align: -3px; }
+/* aide, nouveautés, vérificateur */
+.aide { max-width: 760px; }
+.aide details { border: 1px solid #d8dee6; border-radius: 4px; margin: 0 0 8px; background: #fff; }
+.aide summary { cursor: pointer; padding: 8px 12px; font-weight: 600; color: var(--vert); }
+.aide details > :not(summary) { margin: 0 14px 10px; }
+.aide li { margin: 4px 0; }
+.lien-bouton { background: none; border: 0; padding: 0; color: #1f5fa8; text-decoration: underline; cursor: pointer; font: inherit; }
+.nouveautes { max-width: 520px; max-height: 60vh; overflow: auto; }
+.nouveautes h3 { margin: 10px 0 4px; color: var(--vert); font-size: 15px; }
+.nouveautes h3 small { color: #777; font-weight: normal; }
+.nouveautes li { margin: 3px 0; }
+.liste-verif { display: flex; flex-direction: column; gap: 4px; max-height: 300px; overflow: auto; }
+.liste-verif .bouton { text-align: left; }

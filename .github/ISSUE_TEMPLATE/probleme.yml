@@ -1,0 +1,40 @@
+name: Signaler un problème
+description: Quelque chose ne marche pas comme prévu.
+title: "[Problème] "
+labels: ["problème"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Merci de prendre le temps de signaler ce problème. **N'envoyez pas de document contenant des informations personnelles** (noms d'élèves, photos de personnes…) : ce qui est écrit ici est public.
+  - type: textarea
+    id: quoi
+    attributes:
+      label: Que s'est-il passé ?
+      description: Ce que vous avez fait, ce que vous attendiez, ce qui s'est produit.
+      placeholder: "J'ai ouvert une fiche .pub, puis… / Le texte dépasse du cadre quand…"
+    validations:
+      required: true
+  - type: dropdown
+    id: navigateur
+    attributes:
+      label: Navigateur
+      options: [Microsoft Edge, Google Chrome, Firefox, Safari, Autre]
+    validations:
+      required: true
+  - type: dropdown
+    id: version
+    attributes:
+      label: Comment utilisez-vous PageLibre ?
+      options: [Application installée, Site pagelibre.github.io, Fichier PageLibre.html ouvert d'un double-clic]
+  - type: input
+    id: version-pl
+    attributes:
+      label: Version de PageLibre
+      description: Fichier › À propos.
+      placeholder: "1.1.0"
+  - type: textarea
+    id: captures
+    attributes:
+      label: Captures d'écran (facultatif)
+      description: Vous pouvez coller une image ici. Vérifiez qu'elle ne montre aucune donnée personnelle.

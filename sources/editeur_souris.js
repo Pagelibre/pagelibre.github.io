@@ -117,7 +117,9 @@ function surBordObjet(ev, o) {
   const a = -(o.rot || 0) * Math.PI / 180, c = Math.cos(a), s = Math.sin(a);
   const dx = p.x - (o.x + o.w / 2), dy = p.y - (o.y + o.h / 2);
   const lx = dx * c - dy * s + o.w / 2, ly = dx * s + dy * c + o.h / 2;
-  const marge = Math.min(5 / (PX_MM * E.zoom), o.w * 0.2, o.h * 0.2);
+  // au doigt, le bord à saisir est plus large (14 px au lieu de 5)
+  const px = ev.pointerType === 'touch' ? 14 : 5;
+  const marge = Math.min(px / (PX_MM * E.zoom), o.w * 0.2, o.h * 0.2);
   return lx < marge || ly < marge || lx > o.w - marge || ly > o.h - marge;
 }
 function surSurvol(ev) {
@@ -313,6 +315,7 @@ function surRelache(ev) {
     const x1 = Math.min(g.p0.x, p.x), x2 = Math.max(g.p0.x, p.x), y1 = Math.min(g.p0.y, p.y), y2 = Math.max(g.p0.y, p.y);
     const ids = new Set(g.base);
     for (const o of pageCourante().items) {
+      if (o.arrierePlan) continue; // le fond de page ne se choisit pas au lasso
       const b = boiteEnglobante([o]);
       if (b.x >= x1 && b.y >= y1 && b.x + b.w <= x2 && b.y + b.h <= y2) idsAvecGroupe(o).forEach(id => ids.add(id));
     }
@@ -465,13 +468,12 @@ function nettoyerAffichage(z) {
 }
 
 function nettoyerHTML(html) {
-  const d = document.createElement('div');
+  // analyse dans un document inerte (securite.js) : rien ne s'exécute ni ne se charge
+  const d = DOC_INERTE.createElement('div');
   d.innerHTML = html;
   nettoyerAffichage(d);
-  d.querySelectorAll('script,style,meta,link,iframe,object,.habillage').forEach(x => x.remove());
-  d.querySelectorAll('*').forEach(x => {
-    for (const a of [...x.attributes]) if (/^on/i.test(a.name) || (a.name === 'href' && /^\s*javascript:/i.test(a.value)) || (a.name === 'contenteditable' && !x.classList.contains('puce') && !x.classList.contains('champ-page'))) x.removeAttribute(a.name);
-  });
+  d.querySelectorAll('.habillage').forEach(x => x.remove());
+  assainirArbre(d);
   d.querySelectorAll('.champ-page').forEach(x => { x.textContent = '#'; });
   // des <div> créés par la saisie deviennent des paragraphes
   d.querySelectorAll(':scope > div').forEach(x => {
@@ -581,7 +583,7 @@ function surTouche(ev) {
     switch (k.toLowerCase()) {
       case 'z': ev.preventDefault(); annuler(); return;
       case 'y': ev.preventDefault(); refaire(); return;
-      case 'a': ev.preventDefault(); choisir(pageCourante().items.map(o => o.id)); return;
+      case 'a': ev.preventDefault(); choisir(pageCourante().items.filter(o => !o.arrierePlan).map(o => o.id)); return;
       case 'd': ev.preventDefault(); dupliquer(); return;
       case 'g': ev.preventDefault(); if (ev.shiftKey) dissocier(); else grouper(); return;
       case 'b': ev.preventDefault(); commande('gras'); return;

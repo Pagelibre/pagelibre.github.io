@@ -104,7 +104,10 @@ function verifier(c, m) { if (c) { ok++; console.log('  ok  ', m); } else { ko++
 
     /* version à jour : une fiche ancienne propose la nouvelle version de l'outil */
     await edge.eval(`E.fiche.titre = 'Fiche test'; E.modifie = false`);
-    const vieux = (await edge.eval(`htmlFiche()`)).replace(/const VERSION_EDITEUR = '[^']*'/, "const VERSION_EDITEUR = '2020-01-01T00:00'");
+    let vieux = (await edge.eval(`htmlFiche()`)).replace(/const VERSION_EDITEUR = '[^']*'/, "const VERSION_EDITEUR = '2020-01-01T00:00'");
+    // le code a changé : on recalcule son empreinte, sinon la règle de sécurité (CSP) le bloquerait
+    const code = /<script>([\s\S]*?)<\/script>/.exec(vieux)[1];
+    vieux = vieux.replace(/'sha256-[^']+'/, `'sha256-${require('crypto').createHash('sha256').update(code, 'utf8').digest('base64')}'`);
     const fv = path.join(dossier, 'fiche_ancienne.html');
     fs.writeFileSync(fv, vieux);
     await edge.ouvrir('file:///' + fv.replace(/\\/g, '/'));

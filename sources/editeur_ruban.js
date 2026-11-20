@@ -46,13 +46,14 @@ function construireRuban() {
       groupe('Pages', grand('', 'page', 'Page', { menu: 'page' }) + grand('', 'numeroPage', 'Numéro de page', { menu: 'numeros' })) +
       groupe('Tableaux', grand('', 'tableau', 'Tableau', { menu: 'tableau' })) +
       groupe('Blocs de construction', grand('', 'blocs', 'Blocs', { menu: 'blocs', titre: 'Bandeau, encadré, calendrier, cartouche…' })) +
-      groupe('Illustrations', grand('insererImage', 'image', 'Images', { titre: 'Insérer une image depuis un fichier' }) + grand('', 'formes', 'Formes', { menu: 'formes' })) +
+      groupe('Illustrations', grand('insererImage', 'image', 'Images', { titre: 'Insérer une image depuis un fichier' }) + grand('', 'formes', 'Formes', { menu: 'formes' }) +
+        grand('importerPDF', 'pdf', 'Pages d\'un PDF', { titre: 'Chaque page d\'un PDF devient le fond d\'une page, pour écrire par-dessus' })) +
       groupe('Texte', grand('dessinTexte', 'zoneTexte', 'Zone de texte') + grand('wordart', 'wordart', 'WordArt') + grand('', 'symbole', 'Symbole', { menu: 'symboles' }) + grand('lien', 'lien', 'Lien', { titre: 'Lien hypertexte (Ctrl+K)' })),
     creation:
       groupe('Mise en page', grand('', 'marges', 'Marges', { menu: 'marges' }) + grand('', 'orientation', 'Orientation', { menu: 'orientation' }) + grand('', 'taillePage', 'Taille', { menu: 'taillePage' })) +
       groupe('Pages maîtres', grand('', 'pageMaitre', 'Pages maîtres', { menu: 'maitres' })) +
       groupe('Jeux', grand('', 'jeuCouleurs', 'Couleurs', { menu: 'jeuCouleurs', titre: 'Jeu de couleurs de la fiche' }) + grand('', 'jeuPolices', 'Polices', { menu: 'jeuPolices', titre: 'Jeu de polices (titres et texte)' })) +
-      groupe('Arrière-plan', grand('', 'couleurPage', 'Couleur de page', { menu: 'couleurPage' })) +
+      groupe('Arrière-plan', grand('', 'couleurPage', 'Couleur de page', { menu: 'couleurPage' }) + grand('', 'fondPage', 'Image de fond', { menu: 'fondPage', titre: 'Image ou page de PDF en fond de page (document scanné…)' })) +
       groupe('Disposition', grand('reperes', 'reperes', 'Repères de marge', { etat: 'opt:reperes' }) + grand('', 'guides', 'Guides', { menu: 'guides', titre: 'Guides de règle (vous pouvez aussi les tirer depuis les règles)' }) + grand('titreFiche', 'page', 'Titre de la fiche')),
     affichage:
       groupe('Afficher', col(
@@ -64,7 +65,9 @@ function construireRuban() {
           `<label class="btn"><input type="checkbox" data-opt="deuxPages"> Deux pages côte à côte</label>`) +
         col(`<label class="btn" title="Sans cocher : Ctrl+molette pour zoomer, molette seule pour défiler (comme en PAO)"><input type="checkbox" data-opt="zoomMolette"> Zoom avec la molette seule</label>`)) +
       groupe('Zoom', grand('zoomPage', 'pageEntiere', 'Page entière') + grand('zoomLargeur', 'largeurPage', 'Largeur de page') + grand('zoom100', 'zoom100', '100 %') +
-        col(petit('zoomPlus', '', '＋ Zoom avant'), petit('zoomMoins', '', '－ Zoom arrière'))),
+        col(petit('zoomPlus', '', '＋ Zoom avant'), petit('zoomMoins', '', '－ Zoom arrière'))) +
+      groupe('Vérifier', grand('verifierAccessibilite', 'accessibilite', 'Accessibilité', { titre: 'Vérifier l\'accessibilité : images non décrites, textes trop petits ou peu contrastés' }) +
+        grand('aide', 'aide', 'Aide', { titre: 'Aide (F1)' })),
     format:
       groupe('Styles de forme', grand('', 'remplissage', 'Remplissage', { menu: 'remplissage' }) + grand('', 'contour', 'Contour', { menu: 'contour' }) + grand('', 'effets', 'Effets', { menu: 'effets', titre: 'Ombre, lueur, transparence' }) + col(petit('degrade', 'remplissage', 'Dégradé…'))) +
       `<div class="groupe g-texte">${'<div class="groupe-corps">' + col(petit('', 'gauche', 'Alignement vertical', { menu: 'vertical' }), petit('', 'marges', 'Marges du texte', { menu: 'margesTexte' }), petit('sensTexte', 'rotation', 'Sens du texte', { titre: 'Texte vertical' })) +
@@ -77,7 +80,9 @@ function construireRuban() {
       groupe('Taille et position', col(champ('c-h', 'Hauteur (cm)', 'Hauteur'), champ('c-w', 'Largeur (cm)', 'Largeur'), champ('c-rot', 'Rotation (degrés)', 'Rotation')) + col(champ('c-x', 'Position horizontale (cm)', 'Horiz.'), champ('c-y', 'Position verticale (cm)', 'Vert.'))),
     image:
       groupe('Ajuster', grand('', 'corrections', 'Corrections', { menu: 'corrections', titre: 'Luminosité, contraste, niveaux de gris…' }) + grand('changerImage', 'changerImageG', 'Changer l\'image') +
-        grand('rogner', 'rognerG', 'Rogner', { etat: 'rogner', titre: 'Rogner à la souris (poignées noires)' }) + col(petit('rognerValeurs', 'rogner', 'Rogner (valeurs)…'), petit('proportions', 'tailleOrigine', 'Proportions d\'origine'), petit('sansRognage', '', 'Annuler le rognage'))) +
+        grand('rogner', 'rognerG', 'Rogner', { etat: 'rogner', titre: 'Rogner à la souris (poignées noires)' }) + col(petit('rognerValeurs', 'rogner', 'Rogner (valeurs)…'), petit('proportions', 'tailleOrigine', 'Proportions d\'origine'), petit('sansRognage', '', 'Annuler le rognage')) +
+        grand('compresserImages', 'compresser', 'Compresser', { titre: 'Compresser les images du document (plus léger à envoyer)' })) +
+      groupe('Accessibilité', grand('texteRemplacement', 'texteAlt', 'Texte de remplacement', { titre: 'Décrire l\'image pour les lecteurs d\'écran et les PDF accessibles' })) +
       groupe('Styles d\'image', grand('', 'contour', 'Bordure', { menu: 'contour' }) + grand('', 'effets', 'Effets', { menu: 'effets' })) +
       groupe('Organiser', col(petit('', 'premierPlan16', 'Premier plan', { menu: 'premierPlan' }), petit('', 'arrierePlan16', 'Arrière-plan', { menu: 'arrierePlan' }), petit('', 'habillage', 'Habillage du texte', { menu: 'habillage' })) + col(petit('retournerH', 'retournerH', 'Retourner horiz.'), petit('retournerV', 'retournerV', 'Retourner vert.'), petit('', 'rotation', 'Faire pivoter', { menu: 'rotation' }))) +
       groupe('Taille', col(champ('c-h', 'Hauteur (cm)', 'Hauteur'), champ('c-w', 'Largeur (cm)', 'Largeur'), champ('c-rot', 'Rotation (degrés)', 'Rotation')) + col(champ('c-x', 'Position horizontale (cm)', 'Horiz.'), champ('c-y', 'Position verticale (cm)', 'Vert.'))),
@@ -107,6 +112,7 @@ function construireRuban() {
   r.addEventListener('focusin', ev => { if (ev.target.matches('select,input')) memoriserSelectionTexte(); });
   $$('[data-opt]').forEach(c => { c.checked = !!E.options[c.dataset.opt]; });
   activerOnglet('accueil');
+  if (typeof accessibiliser === 'function') accessibiliser();
 }
 
 function surClicRuban(ev) {
@@ -125,7 +131,7 @@ function surChangeRuban(ev) {
 
 function activerOnglet(nom) {
   if (nom === 'fichier') { ouvrirCoulisses('infos'); return; }
-  $$('.onglet').forEach(o => o.classList.toggle('actif', o.dataset.onglet === nom));
+  $$('.onglet').forEach(o => { o.classList.toggle('actif', o.dataset.onglet === nom); o.setAttribute('aria-selected', o.dataset.onglet === nom ? 'true' : 'false'); });
   $$('.panneau').forEach(p => p.classList.toggle('actif', p.dataset.panneau === nom));
   E.onglet = nom;
   majRuban();
@@ -253,7 +259,7 @@ const COMMANDES = {
   annuler, refaire,
   coller: collerDepuisBouton, couper, copier, dupliquer,
   supprimer: supprimerSelection,
-  toutSelectionner: () => { quitterEdition(); choisir(pageCourante().items.map(o => o.id)); },
+  toutSelectionner: () => { quitterEdition(); choisir(pageCourante().items.filter(o => !o.arrierePlan).map(o => o.id)); },
   gras: () => cmdTexte('gras'), italique: () => cmdTexte('italique'), souligne: () => cmdTexte('souligne'),
   exposant: () => cmdTexte('exposant'), indice: () => cmdTexte('indice'), effacer: () => cmdTexte('effacer'),
   agrandir: () => cmdTexte('agrandir'), reduire: () => cmdTexte('reduire'),
@@ -493,6 +499,7 @@ function ouvrirMenuNomme(nom, b) {
     stylesTableau: () => ouvrirMenu(sousBouton(b), STYLES_TABLEAU.map(([l, t]) => ({ lib: l, act: () => styleTableau(t) })))
   };
   if (menus[nom]) menus[nom]();
+  else if (typeof MENUS_PLUS === 'object' && MENUS_PLUS[nom]) MENUS_PLUS[nom](b);
 }
 
 function menuContour(b, surFormes) {
@@ -667,23 +674,8 @@ function lireImage(fichier) {
   return new Promise((ok, ko) => {
     const r = new FileReader();
     r.onload = () => {
-      const img = new Image();
-      img.onload = () => {
-        let url = r.result, w = img.naturalWidth, h = img.naturalHeight;
-        const max = 2400;
-        if (Math.max(w, h) > max) {
-          // photo trop lourde : on la réduit (la fiche reste légère)
-          const k = max / Math.max(w, h);
-          const c = document.createElement('canvas');
-          c.width = Math.round(w * k); c.height = Math.round(h * k);
-          c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
-          url = fichier.type === 'image/png' ? c.toDataURL('image/png') : c.toDataURL('image/jpeg', 0.88);
-          w = c.width; h = c.height;
-        }
-        ok({ url, w, h });
-      };
-      img.onerror = () => ko(new Error('Image illisible'));
-      img.src = r.result;
+      // photo trop grande ou trop lourde : réduite à 2 400 points et réenregistrée plus légère (editeur_plus4.js)
+      allegerImage(r.result, 2400).then(ok, ko);
     };
     r.onerror = ko;
     r.readAsDataURL(fichier);
