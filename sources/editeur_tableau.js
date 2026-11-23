@@ -250,7 +250,7 @@ function changerCellules(fn, sansStructure) {
   void sansStructure;
 }
 function fondCellules(couleur) {
-  changerCellules((T, ids) => { for (const i of ids) { if (couleur) T.cellules[i].fond = couleur; else delete T.cellules[i].fond; } });
+  changerCellules((T, ids) => { for (const i of ids) { delete T.cellules[i].motif; if (couleur) T.cellules[i].fond = couleur; else delete T.cellules[i].fond; } });
 }
 function alignementVertical(v) {
   changerCellules((T, ids) => { for (const i of ids) { if (v === 'haut') delete T.cellules[i].vertical; else T.cellules[i].vertical = v; } });

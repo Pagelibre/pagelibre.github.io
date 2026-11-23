@@ -221,20 +221,37 @@
     return r;
   }
 
+  // points d'un motif : 16 chiffres hexadécimaux (8 lignes de 8 points), ou null si ce n'est pas un motif
+  function pointsMotif(f, fiche) {
+    if (!f) return null;
+    if (/^[0-9a-f]{16}$/i.test(f.points || '')) return f.points;
+    const px = f.motif && fiche && fiche.images[f.motif] && pixelsMotif(fiche.images[f.motif]);
+    if (!px) return null;
+    let s = '';
+    for (let y = 0; y < 8; y++) { let o = 0; for (let x = 0; x < 8; x++) if (px[y * 8 + x]) o |= 128 >> x; s += o.toString(16).padStart(2, '0'); }
+    return s;
+  }
+  function cheminMotif(points) {
+    let d = '';
+    for (let y = 0; y < 8; y++) { const o = parseInt(points.slice(y * 2, y * 2 + 2), 16); for (let x = 0; x < 8; x++) if (o & (128 >> x)) d += `M${x} ${y}h1v1h-1z`; }
+    return d;
+  }
+  // fond d'une cellule de tableau
+  function cssMotif(m) {
+    const c = v => (/^#[0-9a-f]{3,8}$/i.test(v || '') ? v : '#ffffff').replace('#', '%23');
+    return `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8'%3E%3Crect width='8' height='8' fill='${c(m.fondMotif)}'/%3E%3Cpath d='${cheminMotif(m.points)}' fill='${c(m.couleur || '#000000')}'/%3E%3C/svg%3E")`;
+  }
+
   function appliquerFond(e, f, defs, fiche, o) {
     if (!f) { e.setAttribute('fill', 'none'); return; }
-    if (f.motif && fiche.images[f.motif]) {
-      // motif répété (hachures) : carreau de 8 × 8 points écran ; les points clairs du motif prennent la couleur
-      // de premier plan, les sombres celle d'arrière-plan (comme dans l'application d'origine)
-      const px = pixelsMotif(fiche.images[f.motif]);
-      const id = 'mf' + (++compteurDef), u = 25.4 / 96;
-      const p = el('pattern', { id, patternUnits: 'userSpaceOnUse', width: f2(8 * u), height: f2(8 * u) }, defs);
-      el('rect', { x: 0, y: 0, width: f2(8 * u), height: f2(8 * u), fill: f.fondMotif || '#ffffff' }, p);
-      if (px) {
-        let d = '';
-        for (let y = 0; y < 8; y++) for (let x = 0; x < 8; x++) if (px[y * 8 + x]) d += `M${f2(x * u)} ${f2(y * u)}h${f2(u)}v${f2(u)}h${f2(-u)}z`;
-        if (d) el('path', { d, fill: f.couleur || '#000000' }, p);
-      } else el('image', { href: fiche.images[f.motif], x: 0, y: 0, width: f2(8 * u), height: f2(8 * u), preserveAspectRatio: 'none' }, p);
+    const pts = pointsMotif(f, fiche);
+    if (pts) {
+      // motif répété (hachures) : carreau de 8 × 8 points écran, comme dans l'application d'origine
+      const id = 'mf' + (++compteurDef);
+      const p = el('pattern', { id, patternUnits: 'userSpaceOnUse', width: 8, height: 8, patternTransform: 'scale(0.264583)' }, defs);
+      el('rect', { x: 0, y: 0, width: 8, height: 8, fill: f.fondMotif || '#ffffff' }, p);
+      const d = cheminMotif(pts);
+      if (d) el('path', { d, fill: f.couleur || '#000000' }, p);
       e.setAttribute('fill', `url(#${id})`);
     } else if (f.image && fiche.images[f.image]) {
       const id = 'pf' + (++compteurDef);
@@ -352,6 +369,7 @@
           td.style.padding = `${pad[0]}mm ${Math.max(0, pad[1] - 0.3).toFixed(2)}mm ${pad[2]}mm ${pad[3]}mm`;
           const fond = c.fond || T.fond;
           if (fond) td.style.backgroundColor = fond;
+          if (c.motif && /^[0-9a-f]{16}$/i.test(c.motif.points || '')) { td.style.backgroundImage = cssMotif(c.motif); td.style.backgroundSize = '2.117mm 2.117mm'; }
           if (c.diagonale) {
             // cellule coupée en diagonale
             const ep = Math.max(c.diagonale.e || 0.75, 0.25) * 0.67, col = c.diagonale.c || '#000000';
@@ -827,6 +845,6 @@
     return f;
   }
 
-  const api = { page, objet, chemin, obstacles, postMiseEnPage, numeroter, coupuresMot, profilsImages, PT_MM };
+  const api = { pointsMotif, cheminMotif, page, objet, chemin, obstacles, postMiseEnPage, numeroter, coupuresMot, profilsImages, PT_MM };
   racine.Rendu = api;
 })(typeof window !== 'undefined' ? window : globalThis);

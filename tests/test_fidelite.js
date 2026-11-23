@@ -88,6 +88,41 @@ function wmfEquation() {
     v(Math.abs(fo.ligne - 5.96) < 0.15 && fo.va === 'middle', `ligne de tableau à sa hauteur : ${fo.ligne} mm (attendu 5,96), texte au milieu`);
     v(await edge.eval(`Rendu.coupuresMot('indicateurs').length > 0`), 'césure disponible');
 
+    /* ce qui vient d'un .pub survit aux fonctions : enregistrer, rouvrir, copier ailleurs, césure, exposant, tabulation */
+    const s1 = await edge.eval(`(() => { const j = JSON.parse(jsonFiche()); return !!(j.images && j.images.mo) && !!E.fiche.images.mo; })()`);
+    v(s1, 'hachures gardées à l\'enregistrement');
+    const s2 = await edge.eval(`(() => { choisir(['sec']); copier(); E.modifie = false; chargerFiche(ficheVierge(210, 297, 'autre')); collerInterne(); const o = pageCourante().items[0]; return !!(o && o.fond && o.fond.motif && E.fiche.images[o.fond.motif]); })()`);
+    v(s2, 'forme hachurée collée dans un autre document : le motif suit');
+    const s3 = await edge.eval(`(() => { E.fiche.page.tabulation = 10; pageCourante().items.push({ id: 'tb2', type: 'tableau', x: 20, y: 120, w: 60, h: 10, cesure: true, tableau: { cols: [60], lignes: [10], marges: [1, 1, 1, 1], cellules: [{ l: 0, c: 0, nl: 1, nc: 1, html: '<p>a</p>' }] } },
+      { id: 'tx2', type: 'texte', forme: 'rect', x: 20, y: 60, w: 100, h: 20, marges: [1, 1, 1, 1], html: '<p><span style="font-size:14pt">1</span><span style="font-size:9.1pt;vertical-align:0.68em;line-height:0">er</span></p>' }); afficherPage();
+      choisir(['tb2']); basculerCesure(); const sans = !objetParId('tb2').cesure; basculerCesure(); const avec = !!objetParId('tb2').cesure;
+      choisir(['tx2']); boiteTabulations(); const def = +document.querySelector('#bt-tab').value; document.querySelector('#bt-tab').value = '12.7'; document.querySelector('#boite [data-ok]').click(); const tab = objetParId('tx2').tabulation;
+      entrerEdition(objetParId('tx2')); const z = elementObjet('tx2').querySelector('.contenu'), sp = z.querySelectorAll('span')[1], r = document.createRange(); r.selectNodeContents(sp); const se = getSelection(); se.removeAllRanges(); se.addRange(r); positionTexte('superscript'); const va = sp.style.verticalAlign, fs2 = sp.style.fontSize; quitterEdition();
+      return { sans, avec, def, tab, va, fs2 }; })()`);
+    v(s3.sans && s3.avec, 'bouton Césure actif sur un tableau');
+    v(s3.def === 10 && s3.tab === 12.7, `tabulation : part de celle du document (${s3.def}), et 12,7 peut y être choisi (${s3.tab})`);
+    v(s3.va === '' && s3.fs2 === '14pt', `Exposant retire un exposant venu d'un .pub (${s3.fs2})`);
+
+    /* bouton Motif : formes, zones de texte, cellules ; annuler, enregistrer, rouvrir */
+    await edge.eval(`E.modifie = false; chargerFiche(normaliserFiche({ titre: 'm', page: { w: 210, h: 297 }, pages: [{ id: 'p1', items: [
+      { id: 'f1', type: 'forme', forme: 'rect', x: 20, y: 20, w: 40, h: 30, fond: { couleur: '#ffff00', opacite: 0.5 } },
+      { id: 't1', type: 'tableau', x: 20, y: 70, w: 60, h: 20, tableau: { cols: [30, 30], lignes: [20], marges: [1, 1, 1, 1], cellules: [0, 1].map(i => ({ l: 0, c: i, nl: 1, nc: 1, html: '<p>a</p>' })) } }] }] }))`);
+    await attendre(300);
+    const m1 = await edge.eval(`(() => { choisir(['f1']); const b = document.querySelector('#ruban [data-cmd="motif"]'); commande('motif'); const n = document.querySelectorAll('#mo-grille [data-m]').length, uniq = new Set(MOTIFS.map(m => m.points)).size, vides = MOTIFS.filter(m => !/^[0-9a-f]{16}$/.test(m.points) || /^0+$|^f+$/.test(m.points)).map(m => m.nom);
+      document.querySelector('#mo-grille [data-m="1"]').click(); document.querySelector('#mo-1').value = '#ff0000'; document.querySelector('#boite [data-ok]').click(); const o = objetParId('f1'), p = elementObjet('f1').querySelector('pattern path');
+      return { bouton: !!b, n, uniq, total: MOTIFS.length, vides, fond: o.fond, rouge: p && p.getAttribute('fill') }; })()`);
+    v(m1.bouton && m1.n === m1.total && m1.uniq === m1.total && !m1.vides.length, `bouton Motif : ${m1.n} motifs, tous différents ${m1.vides.join()}`);
+    v(m1.rouge === '#ff0000' && m1.fond.opacite === 0.5, 'motif posé sur la forme, couleur choisie, transparence gardée');
+    await edge.capture(path.join(require('os').tmpdir(), 'motif-forme.png'));
+    const m2 = await edge.eval(`(() => { const r = {}; annuler(); r.annule = !objetParId('f1').fond.points; refaire(); r.refait = !!objetParId('f1').fond.points;
+      choisir(['t1']); entrerEdition(objetParId('t1')); E.celluleActive = 1; commande('motifCellules'); document.querySelector('#mo-grille [data-m="20"]').click(); document.querySelector('#boite [data-ok]').click(); const c = objetParId('t1').tableau.cellules; r.cel = !!(c[1].motif && !c[0].motif); r.css = getComputedStyle(elementObjet('t1').querySelectorAll('td')[1]).backgroundImage.startsWith('url("data:image/svg');
+      const j = JSON.parse(jsonFiche()); E.modifie = false; chargerFiche(normaliserFiche(j)); r.rouvert = !!objetParId('f1').fond.points && !!objetParId('t1').tableau.cellules[1].motif && !!elementObjet('f1').querySelector('pattern path');
+      choisir(['f1']); commande('motif'); document.querySelector('#mo-aucun').checked = true; document.querySelector('#boite [data-ok]').click(); r.retire = !objetParId('f1').fond.points && !elementObjet('f1').querySelector('pattern'); return r; })()`);
+    v(m2.annule && m2.refait, 'motif : annuler et rétablir');
+    v(m2.cel && m2.css, 'motif sur une seule cellule de tableau');
+    v(m2.rouvert, 'motifs gardés après enregistrement et réouverture');
+    v(m2.retire, 'motif retiré');
+
     /* page entière */
     await edge.eval(`zoomPage()`);
     await attendre(300);

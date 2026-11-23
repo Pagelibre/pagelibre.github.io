@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-CvHQVttSWDcfLjVCXtfq0r4fn1N3RA/e6U/zQIEFeuE='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' data: blob:; worker-src 'self' blob:; media-src 'self' data: blob:; object-src 'none'; base-uri 'none'; form-action 'none'; frame-src 'none'; manifest-src 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-9q/Rgqg/yU6CSKqAsC8DgeulSnaYU2sRBMo+l+AQhzI='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' data: blob:; worker-src 'self' blob:; media-src 'self' data: blob:; object-src 'none'; base-uri 'none'; form-action 'none'; frame-src 'none'; manifest-src 'self'">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>PageLibre</title>
 <meta name="description" content="PageLibre : logiciel libre et gratuit de mise en page (affiches, fiches, brochures), dans le navigateur. Ouvre aussi les anciens fichiers .pub.">
@@ -591,6 +591,15 @@ body.tactile .sep-lig { height: 18px; margin-top: -6px; }
 .liste-verif { display: flex; flex-direction: column; gap: 4px; max-height: 300px; overflow: auto; }
 .liste-verif .bouton { text-align: left; }
 
+/* remplissage à motif */
+.grille-motifs { display: grid; grid-template-columns: repeat(8, 40px); gap: 4px; max-height: 50vh; overflow: auto; padding: 2px; }
+.grille-motifs button { padding: 2px; border: 2px solid transparent; background: none; cursor: pointer; line-height: 0; }
+.grille-motifs button:hover { border-color: #a9c3dd; }
+.grille-motifs button[aria-selected="true"] { border-color: var(--vert); }
+.grille-motifs svg, #mo-apercu svg { border: 1px solid #bbb; }
+#mo-apercu { line-height: 0; display: flex; }
+#mo-apercu svg { border: 0; }
+
 </style>
 </head>
 <body>
@@ -681,8 +690,8 @@ body.tactile .sep-lig { height: 18px; margin-top: -6px; }
 
 <script id="fiche-integree" type="application/json">null</script>
 <script>
-const VERSION_EDITEUR = '2026-11-23T17:35';
-const VERSION_NOM = '1.1.2';
+const VERSION_EDITEUR = '2026-11-23T18:27';
+const VERSION_NOM = '1.1.3';
 const DEPOT_URL = "https://github.com/Pagelibre/pagelibre.github.io";
 const LIEN_SOUTIEN = "";
 const LOGO_SVG = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\">\n  <rect width=\"64\" height=\"64\" rx=\"14\" fill=\"#23405e\"/>\n  <path d=\"M18 10h20l11 11v31a3 3 0 0 1-3 3H18a3 3 0 0 1-3-3V13a3 3 0 0 1 3-3z\" fill=\"#ffffff\"/>\n  <path d=\"M38 10v8a3 3 0 0 0 3 3h8z\" fill=\"#c9d8e8\"/>\n  <rect x=\"20\" y=\"25\" width=\"12\" height=\"10\" rx=\"1.5\" fill=\"#f2b705\"/>\n  <path d=\"M35.5 27h8.5M35.5 32h8.5M20.5 40h23.5M20.5 45h23.5M20.5 50h15\" stroke=\"#23405e\" stroke-width=\"2.4\" stroke-linecap=\"round\"/>\n</svg>";
@@ -1500,7 +1509,7 @@ function assainirFiche(f) {
           puce = `<span class="puce" contenteditable="false" style="${cssCar(sFin, base)}">${car} </span>`;
         }
         const s0 = sDom || sCar(runA(Q.runsCar, p));
-        out += `<p${ps.taquets ? ` data-taquets="${ps.taquets.join(';')}"` : ''} style="${cssPar(ps, s0.police || base.police, s0.taille || base.taille, s0.gras)}">${puce}${contenu}</p>`;
+        out += `<p${ps.taquets ? ` data-taquets="${ps.taquets.join(',')}"` : ''} style="${cssPar(ps, s0.police || base.police, s0.taille || base.taille, s0.gras)}">${puce}${contenu}</p>`;
         p = q + 1;
         if (q === fin) break;
       }
@@ -1635,8 +1644,17 @@ function assainirFiche(f) {
       // motif (hachures…) : petite image répétée, couleur de premier plan 0x181 et d'arrière-plan 0x183
       if (typeF === 1) {
         const pib = val(props, 0x186, 0);
-        const ref = pib ? refImage(pib) : null;
-        if (ref) { r.motif = ref; r.fondMotif = couleurRGB(val(props, 0x183, 0xffffff), palette) || '#ffffff'; }
+        const im = pib ? E.image(pib) : null, d = im && im.data;
+        // image BMP 8 × 8 à 1 bit : ses points clairs prennent la couleur de premier plan
+        if (d && d.length >= 94 && d[0] === 0x42 && d[1] === 0x4d) {
+          const v = vue(d), off = v.getUint32(10, true), tete = v.getUint32(14, true), haut = v.getInt32(22, true);
+          if (v.getInt32(18, true) === 8 && Math.abs(haut) === 8 && v.getUint16(28, true) === 1 && off + 32 <= d.length) {
+            const clair = [0, 1].map(i => { const q = 14 + tete + i * 4; return d[q] + d[q + 1] + d[q + 2] >= 384; });
+            let pts = '';
+            for (let y = 0; y < 8; y++) { const l = d[off + (haut > 0 ? 7 - y : y) * 4]; let o = 0; for (let x = 0; x < 8; x++) if (clair[(l >> (7 - x)) & 1]) o |= 128 >> x; pts += o.toString(16).padStart(2, '0'); }
+            r.points = pts; r.fondMotif = couleurRGB(val(props, 0x183, 0xffffff), palette) || '#ffffff';
+          }
+        }
       }
       return r;
     }
@@ -1831,7 +1849,8 @@ function assainirFiche(f) {
         else if (c.sens === 1) cel.sensTexte = 'bas-haut';
         const pc = tinfo.cellules.get(i);
         const fc = pc ? remplissage(pc) : null;
-        if (fc) cel.fond = fc.couleur;
+        if (fc && fc.points) cel.motif = { couleur: fc.couleur, fondMotif: fc.fondMotif, points: fc.points };
+        else if (fc) cel.fond = fc.couleur;
         return cel;
       });
       // Bordures : segments de la grille, dessinés dans le format .pub comme des
@@ -2261,20 +2280,37 @@ function assainirFiche(f) {
     return r;
   }
 
+  // points d'un motif : 16 chiffres hexadécimaux (8 lignes de 8 points), ou null si ce n'est pas un motif
+  function pointsMotif(f, fiche) {
+    if (!f) return null;
+    if (/^[0-9a-f]{16}$/i.test(f.points || '')) return f.points;
+    const px = f.motif && fiche && fiche.images[f.motif] && pixelsMotif(fiche.images[f.motif]);
+    if (!px) return null;
+    let s = '';
+    for (let y = 0; y < 8; y++) { let o = 0; for (let x = 0; x < 8; x++) if (px[y * 8 + x]) o |= 128 >> x; s += o.toString(16).padStart(2, '0'); }
+    return s;
+  }
+  function cheminMotif(points) {
+    let d = '';
+    for (let y = 0; y < 8; y++) { const o = parseInt(points.slice(y * 2, y * 2 + 2), 16); for (let x = 0; x < 8; x++) if (o & (128 >> x)) d += `M${x} ${y}h1v1h-1z`; }
+    return d;
+  }
+  // fond d'une cellule de tableau
+  function cssMotif(m) {
+    const c = v => (/^#[0-9a-f]{3,8}$/i.test(v || '') ? v : '#ffffff').replace('#', '%23');
+    return `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8'%3E%3Crect width='8' height='8' fill='${c(m.fondMotif)}'/%3E%3Cpath d='${cheminMotif(m.points)}' fill='${c(m.couleur || '#000000')}'/%3E%3C/svg%3E")`;
+  }
+
   function appliquerFond(e, f, defs, fiche, o) {
     if (!f) { e.setAttribute('fill', 'none'); return; }
-    if (f.motif && fiche.images[f.motif]) {
-      // motif répété (hachures) : carreau de 8 × 8 points écran ; les points clairs du motif prennent la couleur
-      // de premier plan, les sombres celle d'arrière-plan (comme dans l'application d'origine)
-      const px = pixelsMotif(fiche.images[f.motif]);
-      const id = 'mf' + (++compteurDef), u = 25.4 / 96;
-      const p = el('pattern', { id, patternUnits: 'userSpaceOnUse', width: f2(8 * u), height: f2(8 * u) }, defs);
-      el('rect', { x: 0, y: 0, width: f2(8 * u), height: f2(8 * u), fill: f.fondMotif || '#ffffff' }, p);
-      if (px) {
-        let d = '';
-        for (let y = 0; y < 8; y++) for (let x = 0; x < 8; x++) if (px[y * 8 + x]) d += `M${f2(x * u)} ${f2(y * u)}h${f2(u)}v${f2(u)}h${f2(-u)}z`;
-        if (d) el('path', { d, fill: f.couleur || '#000000' }, p);
-      } else el('image', { href: fiche.images[f.motif], x: 0, y: 0, width: f2(8 * u), height: f2(8 * u), preserveAspectRatio: 'none' }, p);
+    const pts = pointsMotif(f, fiche);
+    if (pts) {
+      // motif répété (hachures) : carreau de 8 × 8 points écran, comme dans l'application d'origine
+      const id = 'mf' + (++compteurDef);
+      const p = el('pattern', { id, patternUnits: 'userSpaceOnUse', width: 8, height: 8, patternTransform: 'scale(0.264583)' }, defs);
+      el('rect', { x: 0, y: 0, width: 8, height: 8, fill: f.fondMotif || '#ffffff' }, p);
+      const d = cheminMotif(pts);
+      if (d) el('path', { d, fill: f.couleur || '#000000' }, p);
       e.setAttribute('fill', `url(#${id})`);
     } else if (f.image && fiche.images[f.image]) {
       const id = 'pf' + (++compteurDef);
@@ -2392,6 +2428,7 @@ function assainirFiche(f) {
           td.style.padding = `${pad[0]}mm ${Math.max(0, pad[1] - 0.3).toFixed(2)}mm ${pad[2]}mm ${pad[3]}mm`;
           const fond = c.fond || T.fond;
           if (fond) td.style.backgroundColor = fond;
+          if (c.motif && /^[0-9a-f]{16}$/i.test(c.motif.points || '')) { td.style.backgroundImage = cssMotif(c.motif); td.style.backgroundSize = '2.117mm 2.117mm'; }
           if (c.diagonale) {
             // cellule coupée en diagonale
             const ep = Math.max(c.diagonale.e || 0.75, 0.25) * 0.67, col = c.diagonale.c || '#000000';
@@ -2867,7 +2904,7 @@ function assainirFiche(f) {
     return f;
   }
 
-  const api = { page, objet, chemin, obstacles, postMiseEnPage, numeroter, coupuresMot, profilsImages, PT_MM };
+  const api = { pointsMotif, cheminMotif, page, objet, chemin, obstacles, postMiseEnPage, numeroter, coupuresMot, profilsImages, PT_MM };
   racine.Rendu = api;
 })(typeof window !== 'undefined' ? window : globalThis);
 
@@ -3433,6 +3470,7 @@ const ICONES = (function () {
   const s32 = c => `<svg viewBox="0 0 32 32" aria-hidden="true">${c}</svg>`;
   const B = '#2b579a', G = '#555', V = '#23405e', O = '#d48a1c', R = '#c43e1c';
   return {
+    motif: s16(`<path d="M1.5 1.5h13v13h-13z" fill="#fff" stroke="${G}"/><path d="M2 7l5-5M2 11l9-9M2 14.5L14.5 2M6 14.5L14.5 6M10 14.5l4.5-4.5" stroke="${B}" stroke-width="1.2"/>`),
     disquette: s16(`<path d="M2 2h10l2 2v10H2z" fill="none" stroke="#fff" stroke-width="1.3"/><path d="M5 2v4h5V2M4.5 14V9.5h7V14" fill="none" stroke="#fff" stroke-width="1.2"/>`),
     annuler: s16(`<path d="M5 3L2 6l3 3" fill="none" stroke="#fff" stroke-width="1.4"/><path d="M2.5 6H10a4 4 0 010 8H6" fill="none" stroke="#fff" stroke-width="1.4"/>`),
     refaire: s16(`<path d="M11 3l3 3-3 3" fill="none" stroke="#fff" stroke-width="1.4"/><path d="M13.5 6H6a4 4 0 000 8h4" fill="none" stroke="#fff" stroke-width="1.4"/>`),
@@ -4330,8 +4368,8 @@ function cmdTexte(nom, val) {
       case 'italique': document.execCommand('italic'); break;
       case 'souligne': document.execCommand('underline'); break;
       case 'barre': document.execCommand('strikeThrough'); break;
-      case 'exposant': document.execCommand('superscript'); break;
-      case 'indice': document.execCommand('subscript'); break;
+      case 'exposant': positionTexte('superscript'); break;
+      case 'indice': positionTexte('subscript'); break;
       case 'police': document.execCommand('fontName', false, val); break;
       case 'couleur': document.execCommand('foreColor', false, val); break;
       case 'surligne': document.execCommand('hiliteColor', false, val || 'transparent'); break;
@@ -4527,6 +4565,18 @@ function restaurerSelectionTexte() {
   if (z) z.focus({ preventScroll: true });
   const s = window.getSelection();
   s.removeAllRanges(); s.addRange(selectionMemo);
+}
+
+// exposant ou indice : un texte déjà décalé (repris d'un .pub) revient d'abord à la normale
+function positionTexte(cmd) {
+  const s = window.getSelection(), z = zoneDeSelection();
+  const decales = z && s.rangeCount ? [...z.querySelectorAll('span[style*="vertical-align"]')].filter(x => /em$/.test(x.style.verticalAlign) && s.getRangeAt(0).intersectsNode(x) && s.toString().includes(x.textContent.trim())) : [];
+  if (!decales.length) { document.execCommand(cmd); return; }
+  for (const x of decales) {
+    const taille = parseFloat(x.style.fontSize);
+    x.style.verticalAlign = ''; x.style.lineHeight = '';
+    if (taille) x.style.fontSize = Math.round(taille / 0.65 * 2) / 2 + 'pt';
+  }
 }
 
 /* ==== editeur_tableau.js ==== */
@@ -4782,7 +4832,7 @@ function changerCellules(fn, sansStructure) {
   void sansStructure;
 }
 function fondCellules(couleur) {
-  changerCellules((T, ids) => { for (const i of ids) { if (couleur) T.cellules[i].fond = couleur; else delete T.cellules[i].fond; } });
+  changerCellules((T, ids) => { for (const i of ids) { delete T.cellules[i].motif; if (couleur) T.cellules[i].fond = couleur; else delete T.cellules[i].fond; } });
 }
 function alignementVertical(v) {
   changerCellules((T, ids) => { for (const i of ids) { if (v === 'haut') delete T.cellules[i].vertical; else T.cellules[i].vertical = v; } });
@@ -5483,14 +5533,17 @@ function surTouche(ev) {
 function copier() {
   if (!E.sel.length) return;
   const objs = copie(selection());
-  E.presse = { objets: objs, page: E.ip, n: 0 };
-  try { navigator.clipboard.writeText(objs.map(o => (o.html || '').replace(/<\/p>/g, '\n').replace(/<[^>]+>/g, '')).join('\n').trim()); } catch (e) { /* facultatif */ }
+  const images = {};
+  for (const o of objs) for (const k of imagesObjet(o)) if (E.fiche.images[k]) images[k] = E.fiche.images[k];
+  E.presse = { objets: objs, images, page: E.ip, n: 0 };
+  try { navigator.clipboard.writeText(objs.map(o => (o.html || '').replace(/<\/p>/g, '\n').replace(/<[^>]+>/g, '')).join('\n').trim()).catch(() => {}); } catch (e) { /* facultatif */ }
 }
 function couper() { copier(); supprimerSelection(); }
 function collerInterne() {
   if (!E.presse) return false;
   avant();
   E.presse.n++;
+  for (const [k, u] of Object.entries(E.presse.images || {})) if (!E.fiche.images[k]) E.fiche.images[k] = u; // collé dans un autre document
   const decal = E.presse.page === E.ip ? 4 * E.presse.n : 0;
   const objs = copie(E.presse.objets);
   renommerGroupes(objs);
@@ -5853,7 +5906,7 @@ function construireRuban() {
       groupe('Vérifier', grand('verifierAccessibilite', 'accessibilite', 'Accessibilité', { titre: 'Vérifier l\'accessibilité : images non décrites, textes trop petits ou peu contrastés' }) +
         grand('aide', 'aide', 'Aide', { titre: 'Aide (F1)' })),
     format:
-      groupe('Styles de forme', grand('', 'remplissage', 'Remplissage', { menu: 'remplissage' }) + grand('', 'contour', 'Contour', { menu: 'contour' }) + grand('', 'effets', 'Effets', { menu: 'effets', titre: 'Ombre, lueur, transparence' }) + col(petit('degrade', 'remplissage', 'Dégradé…'))) +
+      groupe('Styles de forme', grand('', 'remplissage', 'Remplissage', { menu: 'remplissage' }) + grand('', 'contour', 'Contour', { menu: 'contour' }) + grand('', 'effets', 'Effets', { menu: 'effets', titre: 'Ombre, lueur, transparence' }) + col(petit('degrade', 'remplissage', 'Dégradé…'), petit('motif', 'motif', 'Motif…', { titre: 'Remplissage à motif : hachures, trames, quadrillages…' }))) +
       `<div class="groupe g-texte">${'<div class="groupe-corps">' + col(petit('', 'gauche', 'Alignement vertical', { menu: 'vertical' }), petit('', 'marges', 'Marges du texte', { menu: 'margesTexte' }), petit('sensTexte', 'rotation', 'Sens du texte', { titre: 'Texte vertical' })) +
         col(petit('', 'ajuster', 'Ajuster le texte', { menu: 'ajuster' }), petit('', 'colonnes', 'Colonnes', { menu: 'colonnes' }), petit('taquets', 'tabulations', 'Taquets…', { titre: 'Taquets de tabulation' })) +
         col(petit('creerLien', 'lienCadre', 'Créer un lien', { titre: 'Faire continuer le texte dans une autre zone de texte' }), petit('romprelien', 'romprelien', 'Rompre le lien'), petit('', 'lettrine', 'Lettrine', { menu: 'lettrine' })) +
@@ -5877,7 +5930,7 @@ function construireRuban() {
       groupe('Fusion', col(petit('fusionner', 'fusionner', 'Fusionner les cellules', { titre: 'Choisir les cellules avec Maj+clic' }), petit('fractionner', 'fractionner', 'Fractionner'))) +
       groupe('Cellules', grand('', 'remplissage', 'Remplissage', { menu: 'fondCellule' }) + grand('', 'bordures', 'Bordures', { menu: 'bordures' }) +
         col(petit('', 'gauche', 'Alignement vertical', { menu: 'verticalCellule' }), petit('sensCellule', 'rotation', 'Texte vertical'), petit('', 'contour', 'Style de bordure', { menu: 'styleBord' })) +
-        col(petit('', 'diagonale', 'Diagonale', { menu: 'diagonale', titre: 'Couper la cellule en diagonale' }))) +
+        col(petit('', 'diagonale', 'Diagonale', { menu: 'diagonale', titre: 'Couper la cellule en diagonale' }), petit('motifCellules', 'motif', 'Motif…', { titre: 'Remplissage à motif des cellules (hachures…)' }), petit('cesure', 'cesure', 'Césure', { etat: 'cesure', titre: 'Couper les mots en fin de ligne dans le tableau' }))) +
       groupe('Taille', col(champ('c-hl', 'Hauteur de la ligne (cm)', 'Ligne'), champ('c-lc', 'Largeur de la colonne (cm)', 'Colonne'), lig(petit('repartirLignes', '', 'Répartir lignes'))) + col(champ('c-x', 'Position horizontale (cm)', 'Horiz.'), champ('c-y', 'Position verticale (cm)', 'Vert.'), lig(petit('repartirColonnes', '', 'Répartir colonnes'))))
   };
   P.maitre =
@@ -6131,6 +6184,7 @@ function menuCouleur(b, surChoix, opt = {}) {
       i.click();
     }
   });
+  if (opt.plus) items.push('-', ...opt.plus);
   memoriserSelectionTexte();
   ouvrirMenu(sousBouton(b), items, d);
 }
@@ -6222,7 +6276,7 @@ function ouvrirMenuNomme(nom, b) {
       { lib: 'Aligner à gauche', act: () => aligner('gauche') }, { lib: 'Centrer', act: () => aligner('centreH') }, { lib: 'Aligner à droite', act: () => aligner('droite') },
       { lib: 'Aligner en haut', act: () => aligner('haut') }, { lib: 'Aligner au milieu', act: () => aligner('milieu') }, { lib: 'Aligner en bas', act: () => aligner('bas') },
       '-', { lib: 'Distribuer horizontalement', act: () => aligner('distribuerH'), off: s.length < 3 }, { lib: 'Distribuer verticalement', act: () => aligner('distribuerV'), off: s.length < 3 }]),
-    remplissage: () => menuCouleur(b, c => surFormes(o => { if (o.type === 'wordart') o.wordart.couleur = c || '#000000'; else if (c) o.fond = { couleur: c }; else delete o.fond; }), { aucun: 'Aucun remplissage' }),
+    remplissage: () => menuCouleur(b, c => surFormes(o => { if (o.type === 'wordart') o.wordart.couleur = c || '#000000'; else if (c) o.fond = { couleur: c }; else delete o.fond; }), { aucun: 'Aucun remplissage', plus: [{ lib: 'Dégradé…', act: () => boiteDegrade() }, { lib: 'Motif (hachures)…', ic: 'motif', act: () => motifFormes() }] }),
     contour: () => menuContour(b, surFormes),
     vertical: () => ouvrirMenu(sousBouton(b), [['haut', 'En haut'], ['milieu', 'Au milieu'], ['bas', 'En bas']].map(([v, l]) => ({ lib: l, coche: s[0] && (s[0].vertical || 'haut') === v, act: () => surFormes(o => { if (o.type === 'texte') o.vertical = v; }) }))),
     margesTexte: () => ouvrirMenu(sousBouton(b), [['Aucune', 0], ['Étroites (1 mm)', 1], ['Moyennes (2,5 mm)', 2.54], ['Larges (5 mm)', 5]].map(([l, v]) => ({ lib: l, act: () => surFormes(o => { if (o.type === 'texte') o.marges = [v, v, v, v]; }) }))),
@@ -6242,7 +6296,7 @@ function ouvrirMenuNomme(nom, b) {
         .map(([l, w, h]) => ({ lib: l, act: () => changerTaillePage(...t(w, h)) })).concat(['-', { lib: 'Taille personnalisée…', act: boiteTaillePage }]));
     },
     couleurPage: () => menuCouleur(b, c => { avant(); if (c) P.fond = c; else delete P.fond; afficherPage(); dessinerVignettes(); apres(); }, { aucun: 'Aucune couleur (blanc)' }),
-    fondCellule: () => menuCouleur(b, c => fondCellules(c), { aucun: 'Aucun remplissage' }),
+    fondCellule: () => menuCouleur(b, c => fondCellules(c), { aucun: 'Aucun remplissage', plus: [{ lib: 'Motif (hachures)…', ic: 'motif', act: () => motifCellules() }] }),
     bordures: () => ouvrirMenu(sousBouton(b), [
       { lib: 'Toutes les bordures', ic: 'bordures', act: () => bordures('toutes') }, { lib: 'Bordures extérieures', act: () => bordures('exterieures') },
       { lib: 'Bordures intérieures', act: () => bordures('interieures') }, { lib: 'Aucune bordure', act: () => bordures('aucune') },
@@ -7283,12 +7337,12 @@ function boiteColonnes() {
 function boiteTabulations() {
   const objs = selection().filter(o => o.type === 'texte');
   if (!objs.length) return;
-  ouvrirBoite('Tabulations', `<div class="grille-champs"><span>Écart entre les taquets (mm)</span><input id="bt-tab" class="champ champ-num" type="number" min="1" step="0.5" value="${objs[0].tabulation || 12.7}"></div>
+  ouvrirBoite('Tabulations', `<div class="grille-champs"><span>Écart entre les taquets (mm)</span><input id="bt-tab" class="champ champ-num" type="number" min="1" step="0.5" value="${objs[0].tabulation || tabulationDoc()}"></div>
     <p style="color:#666;max-width:380px">Chaque appui sur Tab dans ces zones de texte avance jusqu'au taquet suivant, placé tous les N mm.</p>`, () => {
     quitterEdition();
     avant();
     const v = +$('#bt-tab').value;
-    for (const o of objs) { if (v > 0 && v !== 12.7) o.tabulation = v; else delete o.tabulation; redessinerObjet(o); }
+    for (const o of objs) { if (v > 0 && v !== tabulationDoc()) o.tabulation = v; else delete o.tabulation; redessinerObjet(o); }
     apres();
   });
 }
@@ -7677,20 +7731,21 @@ function boiteTaquets() {
   const ligne = (v, i) => `<div class="ligne" style="gap:6px;margin:3px 0"><input class="champ champ-num" data-tq="${i}" type="number" step="0.5" min="0" value="${v ? parseFloat(v) : ''}" placeholder="mm"><select class="champ" data-tqa="${i}">${[['', 'Gauche'], ['c', 'Centré'], ['d', 'Droite'], ['v', 'Décimal (virgule)']].map(([k, l]) => `<option value="${k}"${(v || '').trim().endsWith(k) && k ? ' selected' : ''}>${l}</option>`).join('')}</select></div>`;
   ouvrirBoite('Taquets de tabulation', `<p style="color:#666;margin-top:0">Position de chaque taquet, en mm depuis le bord gauche du paragraphe.<br>S'applique aux paragraphes sélectionnés (ou à tout le cadre).</p>
     ${[0, 1, 2, 3, 4, 5].map(i => ligne(actuels[i], i)).join('')}
-    <div class="grille-champs" style="margin-top:8px"><span>Au-delà : un taquet tous les (mm)</span><input id="tq-pas" class="champ champ-num" type="number" min="1" step="0.5" value="${(selection()[0] && selection()[0].tabulation) || 12.7}"></div>`, () => {
+    <div class="grille-champs" style="margin-top:8px"><span>Au-delà : un taquet tous les (mm)</span><input id="tq-pas" class="champ champ-num" type="number" min="1" step="0.5" value="${(selection()[0] && selection()[0].tabulation) || tabulationDoc()}"></div>`, () => {
     const l = [0, 1, 2, 3, 4, 5].map(i => { const v = parseFloat($(`[data-tq="${i}"]`).value); return v >= 0 ? v + $(`[data-tqa="${i}"]`).value : null; }).filter(Boolean)
       .sort((a, b) => parseFloat(a) - parseFloat(b)).join(',');
     const pas = +$('#tq-pas').value;
     restaurerSelectionTexte();
     appliquerTexte((z, tout) => { for (const q of paragraphesVises(z, tout)) { if (l) q.dataset.taquets = l; else delete q.dataset.taquets; } });
     const objs = selection().filter(o => o.type === 'texte');
-    if (objs.length && pas > 0) { avant(); for (const o of objs) { if (pas !== 12.7) o.tabulation = pas; else delete o.tabulation; redessinerObjet(o); } apres(); }
+    if (objs.length && pas > 0) { avant(); for (const o of objs) { if (pas !== tabulationDoc()) o.tabulation = pas; else delete o.tabulation; redessinerObjet(o); } apres(); }
   });
 }
 
 /* ---------------- césure ---------------- */
+function tabulationDoc() { return E.fiche.page.tabulation || 12.7; }
 function basculerCesure() {
-  const objs = selection().filter(o => o.type === 'texte');
+  const objs = selection().filter(o => o.type === 'texte' || o.type === 'tableau');
   if (!objs.length) return;
   quitterEdition();
   avant();
@@ -7779,6 +7834,8 @@ function appliquerJeuCouleurs(nouv) {
     if (o.fond) { o.fond.couleur = conv(o.fond.couleur); if (o.fond.degrade) o.fond.degrade = conv(o.fond.degrade); }
     if (o.trait) o.trait.couleur = conv(o.trait.couleur);
     if (o.wordart) { o.wordart.couleur = conv(o.wordart.couleur); if (o.wordart.degrade) o.wordart.degrade = conv(o.wordart.degrade); if (o.wordart.contour) o.wordart.contour.couleur = conv(o.wordart.contour.couleur); }
+    if (o.fond && o.fond.fondMotif) o.fond.fondMotif = conv(o.fond.fondMotif);
+    if (o.tableau) for (const c of o.tableau.cellules) if (c.motif) { c.motif.couleur = conv(c.motif.couleur); c.motif.fondMotif = conv(c.motif.fondMotif); }
     if (o.tableau) for (const c of o.tableau.cellules) { if (c.fond) c.fond = conv(c.fond); if (c.bords) for (const k in c.bords) if (c.bords[k]) c.bords[k] = Object.assign({}, c.bords[k], { c: conv(c.bords[k].c) }); }
   }
   surToutLeHTML(d => { let m = false; d.querySelectorAll('[style*="color"]').forEach(s => { const n = conv(s.style.color); if (n !== s.style.color && hexa(n) !== hexa(s.style.color)) { s.style.color = n; m = true; } }); return m; });
@@ -8180,6 +8237,15 @@ function nouveauDepuisModele(cle) {
    Affichées une fois à la première ouverture d'une nouvelle version, et dans Fichier › Aide.
    Le numéro de version (VERSION_NOM) vient de depot/package.json : le changer à chaque publication. */
 const NOUVEAUTES = [
+  {
+    version: '1.1.3', date: '23/11/2026',
+    points: [
+      'Nouveau : remplissage à motif (hachures, trames, quadrillages…) pour les formes, les zones de texte et les cellules : Format › Motif.',
+      'Correction : les hachures (motifs) ne disparaissent plus à l’enregistrement.',
+      'Césure : le bouton agit aussi sur les tableaux. Exposant et Indice : retirent aussi ceux des fichiers .pub.',
+      'Tabulations : les réglages partent de la valeur du document. Copier-coller d’un document à l’autre : les images suivent.'
+    ]
+  },
   {
     version: '1.1.2', date: '23/11/2026',
     points: [
@@ -8846,6 +8912,128 @@ function initPlus4() {
   proposerNouveautes();
 }
 
+/* ==== editeur_motifs.js ==== */
+/* =====================================================================
+   Remplissage à motif (hachures) : formes, zones de texte, cellules de tableau.
+   Un motif = 8 × 8 points, écrits en 16 chiffres hexadécimaux (une ligne = 2 chiffres,
+   bit de poids fort à gauche) dans la forme : { couleur, fondMotif, points }.
+   Les points à 1 prennent la couleur de premier plan (couleur), les autres celle d'arrière-plan (fondMotif).
+   ===================================================================== */
+const MOTIFS = (() => {
+  const bayer = [0, 32, 8, 40, 2, 34, 10, 42, 48, 16, 56, 24, 50, 18, 58, 26, 12, 44, 4, 36, 14, 46, 6, 38, 60, 28, 52, 20, 62, 30, 54, 22,
+    3, 35, 11, 43, 1, 33, 9, 41, 51, 19, 59, 27, 49, 17, 57, 25, 15, 47, 7, 39, 13, 45, 5, 37, 63, 31, 55, 23, 61, 29, 53, 21];
+  const hexa = fn => { let s = ''; for (let y = 0; y < 8; y++) { let o = 0; for (let x = 0; x < 8; x++) if (fn(x, y)) o |= 128 >> x; s += o.toString(16).padStart(2, '0'); } return s; };
+  const l = [];
+  const ajout = (nom, fn) => l.push({ nom, points: typeof fn === 'string' ? fn : hexa(fn) });
+  // hachures et lignes
+  ajout('Hachures montantes', (x, y) => ((x + y) & 7) === 7);
+  ajout('Hachures descendantes', (x, y) => ((x - y) & 7) === 0);
+  ajout('Hachures montantes serrées', (x, y) => ((x + y) & 3) === 3);
+  ajout('Hachures descendantes serrées', (x, y) => ((x - y) & 3) === 0);
+  ajout('Hachures montantes épaisses', (x, y) => ((x + y) & 3) >= 2);
+  ajout('Hachures descendantes épaisses', (x, y) => ((x - y) & 3) < 2);
+  ajout('Hachures montantes larges', (x, y) => ((x + y) & 7) >= 5);
+  ajout('Hachures descendantes larges', (x, y) => ((x - y) & 7) < 3);
+  ajout('Lignes verticales', x => (x & 7) === 3);
+  ajout('Lignes horizontales', (x, y) => (y & 7) === 3);
+  ajout('Lignes verticales serrées', x => (x & 3) === 0);
+  ajout('Lignes horizontales serrées', (x, y) => (y & 3) === 0);
+  ajout('Lignes verticales fines', x => (x & 1) === 0);
+  ajout('Lignes horizontales fines', (x, y) => (y & 1) === 0);
+  ajout('Lignes verticales épaisses', x => (x & 3) < 2);
+  ajout('Lignes horizontales épaisses', (x, y) => (y & 3) < 2);
+  // tirets
+  ajout('Tirets montants', (x, y) => ((x + y) & 3) === 3 && y < 4);
+  ajout('Tirets descendants', (x, y) => ((x - y) & 3) === 0 && y < 4);
+  ajout('Tirets horizontaux', (x, y) => (y === 0 && x < 4) || (y === 4 && x >= 4));
+  ajout('Tirets verticaux', (x, y) => (x === 0 && y < 4) || (x === 4 && y >= 4));
+  // quadrillages et croisillons
+  ajout('Quadrillage', (x, y) => x === 0 || y === 0);
+  ajout('Quadrillage serré', (x, y) => (x & 3) === 0 || (y & 3) === 0);
+  ajout('Quadrillage pointillé', (x, y) => (x === 0 && !(y & 1)) || (y === 0 && !(x & 1)));
+  ajout('Croisillons', (x, y) => ((x + y) & 7) === 7 || ((x - y) & 7) === 0);
+  ajout('Croisillons serrés', (x, y) => ((x + y) & 3) === 3 || ((x - y) & 3) === 0);
+  ajout('Croisillons pointillés', (x, y) => !(y & 1) && (((x + y) & 7) === 0 || ((x - y) & 7) === 0));
+  ajout('Petit damier', (x, y) => ((x >> 1) + (y >> 1)) & 1);
+  ajout('Grand damier', (x, y) => ((x >> 2) + (y >> 2)) & 1);
+  ajout('Losanges pleins', (x, y) => Math.abs(x - 3.5) + Math.abs(y - 3.5) < 4);
+  // points
+  ajout('Points', (x, y) => (x & 3) === 1 && (y & 3) === 1);
+  ajout('Points décalés', (x, y) => (x === 1 && y === 1) || (x === 5 && y === 5));
+  ajout('Gros points', '003c7e7e7e7e3c00');
+  ajout('Confettis', '8010024000080120');
+  ajout('Gros confettis', 'c0c30c0c3030c303');
+  // matières
+  ajout('Briques', (x, y) => (y & 3) === 3 || x === (y < 4 ? 7 : 3));
+  ajout('Briques en diagonale', '0102040818244281');
+  ajout('Zigzag', (x, y) => (y & 3) === (x < 4 ? x : 7 - x));
+  ajout('Vagues', '0000182503c00000');
+  ajout('Tissage', '8854224588152251');
+  ajout('Écailles', '0304081830c08181');
+  // trames (pourcentage de points de premier plan)
+  for (const p of [5, 10, 20, 25, 30, 40, 50, 60, 70, 75, 80, 90]) ajout('Trame ' + p + ' %', (x, y) => bayer[y * 8 + x] < p * 64 / 100);
+  return l;
+})();
+
+function apercuMotif(points, couleur, fond, cote) {
+  return `<svg viewBox="0 0 16 16" width="${cote}" height="${cote}" shape-rendering="crispEdges" aria-hidden="true"><rect width="16" height="16" fill="${esc(fond)}"/>${[[0, 0], [8, 0], [0, 8], [8, 8]].map(([x, y]) => `<path transform="translate(${x} ${y})" d="${Rendu.cheminMotif(points)}" fill="${esc(couleur)}"/>`).join('')}</svg>`;
+}
+// couleur utilisable par un sélecteur de couleur (#rrggbb)
+const couleurHex = (c, defaut) => (/^#[0-9a-f]{6}$/i.test(c || '') ? c : defaut);
+
+// boîte « Motif » : surOK reçoit { couleur, fondMotif, points }, ou null pour « aucun motif »
+function boiteMotif(actuel, surOK) {
+  const a = actuel || {};
+  let choisi = a.points || MOTIFS[0].points;
+  // motif repris d'un .pub, absent de la grille : proposé en premier
+  const liste = a.points && !MOTIFS.some(m => m.points === a.points) ? [{ nom: 'Motif actuel', points: a.points }, ...MOTIFS] : MOTIFS;
+  ouvrirBoite('Remplissage à motif', `<div class="grille-motifs" id="mo-grille" role="listbox" aria-label="Motifs"></div>
+    <div class="grille-champs" style="margin-top:10px"><span>Premier plan</span><input type="color" id="mo-1" value="${couleurHex(a.points ? a.couleur : null, '#000000')}">
+      <span>Arrière-plan</span><input type="color" id="mo-2" value="${couleurHex(a.points ? a.fondMotif : a.couleur, '#ffffff')}">
+      <span>Aperçu</span><span id="mo-apercu"></span></div>
+    <label style="display:flex;gap:8px;align-items:center;margin-top:8px"><input type="checkbox" id="mo-aucun"> Retirer le motif (remplissage uni, couleur d'arrière-plan)</label>`, () => {
+    const c1 = $('#mo-1').value, c2 = $('#mo-2').value;
+    surOK($('#mo-aucun').checked ? null : { couleur: c1, fondMotif: c2, points: choisi }, c2);
+  });
+  const dessiner = () => {
+    const c1 = $('#mo-1').value, c2 = $('#mo-2').value;
+    $('#mo-grille').innerHTML = liste.map((m, i) => `<button type="button" role="option" data-m="${i}" title="${esc(m.nom)}" aria-label="${esc(m.nom)}" aria-selected="${m.points === choisi}">${apercuMotif(m.points, c1, c2, 32)}</button>`).join('');
+    $('#mo-apercu').innerHTML = [0, 1, 2, 3].map(() => apercuMotif(choisi, c1, c2, 32)).join('');
+  };
+  $('#mo-grille').addEventListener('click', ev => { const b = ev.target.closest('[data-m]'); if (!b) return; choisi = liste[+b.dataset.m].points; $('#mo-aucun').checked = false; dessiner(); const n = $(`#mo-grille [data-m="${b.dataset.m}"]`); if (n) n.focus(); });
+  $('#mo-1').addEventListener('input', dessiner);
+  $('#mo-2').addEventListener('input', dessiner);
+  dessiner();
+}
+
+function motifFormes() {
+  const cibles = () => selection().filter(o => o.type === 'forme' || o.type === 'texte');
+  const objs = cibles();
+  if (!objs.length) { alerte('Sélectionnez une forme ou une zone de texte (pour un tableau : onglet Disposition › Motif).'); return; }
+  const f = objs[0].fond || {};
+  boiteMotif({ couleur: f.couleur, fondMotif: f.fondMotif, points: Rendu.pointsMotif(f, E.fiche) }, (m, uni) => {
+    quitterEdition();
+    avant();
+    for (const o of cibles()) { const op = o.fond && o.fond.opacite; o.fond = m ? Object.assign({}, m) : { couleur: uni }; if (op != null) o.fond.opacite = op; redessinerObjet(o); }
+    apres();
+  });
+}
+function motifCellules() {
+  const o = selection().find(x => x.type === 'tableau');
+  if (!o) { alerte('Cliquez d\'abord dans une cellule du tableau.'); return; }
+  // les cellules visées sont mémorisées : la boîte fait perdre le curseur
+  const vises = E.cellules.length ? [...E.cellules] : E.celluleActive != null ? [E.celluleActive] : o.tableau.cellules.map((c, i) => i);
+  const c0 = o.tableau.cellules[vises[0]] || {};
+  boiteMotif(c0.motif || { couleur: c0.fond }, (m, uni) => {
+    quitterEdition();
+    avant();
+    for (const i of vises) { const c = o.tableau.cellules[i]; if (!c) continue; if (m) { c.motif = Object.assign({}, m); delete c.fond; } else { if (c.motif) c.fond = uni; delete c.motif; } }
+    redessinerObjet(o);
+    apres();
+  });
+}
+Object.assign(COMMANDES, { motif: motifFormes, motifCellules });
+
 /* ==== pwa.js ==== */
 /* =====================================================================
    PageLibre : application installable (PWA)
@@ -9036,9 +9224,11 @@ function chargerFiche(fiche, opt = {}) {
 }
 
 /* ---------------- enregistrement ---------------- */
+// toutes les images dont dépend un objet : image, fond en image, motif (hachures)
+function imagesObjet(o) { return [o.image, o.fond && o.fond.image, o.fond && o.fond.motif].filter(Boolean); }
 function imagesUtilisees() {
   const u = new Set();
-  const voir = o => { if (o.image) u.add(o.image); if (o.fond && o.fond.image) u.add(o.fond.image); };
+  const voir = o => imagesObjet(o).forEach(k => u.add(k));
   for (const p of [...E.fiche.pages, ...Object.values(E.fiche.maitres)]) p.items.forEach(voir);
   return u;
 }

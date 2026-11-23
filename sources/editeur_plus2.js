@@ -96,20 +96,21 @@ function boiteTaquets() {
   const ligne = (v, i) => `<div class="ligne" style="gap:6px;margin:3px 0"><input class="champ champ-num" data-tq="${i}" type="number" step="0.5" min="0" value="${v ? parseFloat(v) : ''}" placeholder="mm"><select class="champ" data-tqa="${i}">${[['', 'Gauche'], ['c', 'Centré'], ['d', 'Droite'], ['v', 'Décimal (virgule)']].map(([k, l]) => `<option value="${k}"${(v || '').trim().endsWith(k) && k ? ' selected' : ''}>${l}</option>`).join('')}</select></div>`;
   ouvrirBoite('Taquets de tabulation', `<p style="color:#666;margin-top:0">Position de chaque taquet, en mm depuis le bord gauche du paragraphe.<br>S'applique aux paragraphes sélectionnés (ou à tout le cadre).</p>
     ${[0, 1, 2, 3, 4, 5].map(i => ligne(actuels[i], i)).join('')}
-    <div class="grille-champs" style="margin-top:8px"><span>Au-delà : un taquet tous les (mm)</span><input id="tq-pas" class="champ champ-num" type="number" min="1" step="0.5" value="${(selection()[0] && selection()[0].tabulation) || 12.7}"></div>`, () => {
+    <div class="grille-champs" style="margin-top:8px"><span>Au-delà : un taquet tous les (mm)</span><input id="tq-pas" class="champ champ-num" type="number" min="1" step="0.5" value="${(selection()[0] && selection()[0].tabulation) || tabulationDoc()}"></div>`, () => {
     const l = [0, 1, 2, 3, 4, 5].map(i => { const v = parseFloat($(`[data-tq="${i}"]`).value); return v >= 0 ? v + $(`[data-tqa="${i}"]`).value : null; }).filter(Boolean)
       .sort((a, b) => parseFloat(a) - parseFloat(b)).join(',');
     const pas = +$('#tq-pas').value;
     restaurerSelectionTexte();
     appliquerTexte((z, tout) => { for (const q of paragraphesVises(z, tout)) { if (l) q.dataset.taquets = l; else delete q.dataset.taquets; } });
     const objs = selection().filter(o => o.type === 'texte');
-    if (objs.length && pas > 0) { avant(); for (const o of objs) { if (pas !== 12.7) o.tabulation = pas; else delete o.tabulation; redessinerObjet(o); } apres(); }
+    if (objs.length && pas > 0) { avant(); for (const o of objs) { if (pas !== tabulationDoc()) o.tabulation = pas; else delete o.tabulation; redessinerObjet(o); } apres(); }
   });
 }
 
 /* ---------------- césure ---------------- */
+function tabulationDoc() { return E.fiche.page.tabulation || 12.7; }
 function basculerCesure() {
-  const objs = selection().filter(o => o.type === 'texte');
+  const objs = selection().filter(o => o.type === 'texte' || o.type === 'tableau');
   if (!objs.length) return;
   quitterEdition();
   avant();
@@ -198,6 +199,8 @@ function appliquerJeuCouleurs(nouv) {
     if (o.fond) { o.fond.couleur = conv(o.fond.couleur); if (o.fond.degrade) o.fond.degrade = conv(o.fond.degrade); }
     if (o.trait) o.trait.couleur = conv(o.trait.couleur);
     if (o.wordart) { o.wordart.couleur = conv(o.wordart.couleur); if (o.wordart.degrade) o.wordart.degrade = conv(o.wordart.degrade); if (o.wordart.contour) o.wordart.contour.couleur = conv(o.wordart.contour.couleur); }
+    if (o.fond && o.fond.fondMotif) o.fond.fondMotif = conv(o.fond.fondMotif);
+    if (o.tableau) for (const c of o.tableau.cellules) if (c.motif) { c.motif.couleur = conv(c.motif.couleur); c.motif.fondMotif = conv(c.motif.fondMotif); }
     if (o.tableau) for (const c of o.tableau.cellules) { if (c.fond) c.fond = conv(c.fond); if (c.bords) for (const k in c.bords) if (c.bords[k]) c.bords[k] = Object.assign({}, c.bords[k], { c: conv(c.bords[k].c) }); }
   }
   surToutLeHTML(d => { let m = false; d.querySelectorAll('[style*="color"]').forEach(s => { const n = conv(s.style.color); if (n !== s.style.color && hexa(n) !== hexa(s.style.color)) { s.style.color = n; m = true; } }); return m; });

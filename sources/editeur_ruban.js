@@ -69,7 +69,7 @@ function construireRuban() {
       groupe('Vérifier', grand('verifierAccessibilite', 'accessibilite', 'Accessibilité', { titre: 'Vérifier l\'accessibilité : images non décrites, textes trop petits ou peu contrastés' }) +
         grand('aide', 'aide', 'Aide', { titre: 'Aide (F1)' })),
     format:
-      groupe('Styles de forme', grand('', 'remplissage', 'Remplissage', { menu: 'remplissage' }) + grand('', 'contour', 'Contour', { menu: 'contour' }) + grand('', 'effets', 'Effets', { menu: 'effets', titre: 'Ombre, lueur, transparence' }) + col(petit('degrade', 'remplissage', 'Dégradé…'))) +
+      groupe('Styles de forme', grand('', 'remplissage', 'Remplissage', { menu: 'remplissage' }) + grand('', 'contour', 'Contour', { menu: 'contour' }) + grand('', 'effets', 'Effets', { menu: 'effets', titre: 'Ombre, lueur, transparence' }) + col(petit('degrade', 'remplissage', 'Dégradé…'), petit('motif', 'motif', 'Motif…', { titre: 'Remplissage à motif : hachures, trames, quadrillages…' }))) +
       `<div class="groupe g-texte">${'<div class="groupe-corps">' + col(petit('', 'gauche', 'Alignement vertical', { menu: 'vertical' }), petit('', 'marges', 'Marges du texte', { menu: 'margesTexte' }), petit('sensTexte', 'rotation', 'Sens du texte', { titre: 'Texte vertical' })) +
         col(petit('', 'ajuster', 'Ajuster le texte', { menu: 'ajuster' }), petit('', 'colonnes', 'Colonnes', { menu: 'colonnes' }), petit('taquets', 'tabulations', 'Taquets…', { titre: 'Taquets de tabulation' })) +
         col(petit('creerLien', 'lienCadre', 'Créer un lien', { titre: 'Faire continuer le texte dans une autre zone de texte' }), petit('romprelien', 'romprelien', 'Rompre le lien'), petit('', 'lettrine', 'Lettrine', { menu: 'lettrine' })) +
@@ -93,7 +93,7 @@ function construireRuban() {
       groupe('Fusion', col(petit('fusionner', 'fusionner', 'Fusionner les cellules', { titre: 'Choisir les cellules avec Maj+clic' }), petit('fractionner', 'fractionner', 'Fractionner'))) +
       groupe('Cellules', grand('', 'remplissage', 'Remplissage', { menu: 'fondCellule' }) + grand('', 'bordures', 'Bordures', { menu: 'bordures' }) +
         col(petit('', 'gauche', 'Alignement vertical', { menu: 'verticalCellule' }), petit('sensCellule', 'rotation', 'Texte vertical'), petit('', 'contour', 'Style de bordure', { menu: 'styleBord' })) +
-        col(petit('', 'diagonale', 'Diagonale', { menu: 'diagonale', titre: 'Couper la cellule en diagonale' }))) +
+        col(petit('', 'diagonale', 'Diagonale', { menu: 'diagonale', titre: 'Couper la cellule en diagonale' }), petit('motifCellules', 'motif', 'Motif…', { titre: 'Remplissage à motif des cellules (hachures…)' }), petit('cesure', 'cesure', 'Césure', { etat: 'cesure', titre: 'Couper les mots en fin de ligne dans le tableau' }))) +
       groupe('Taille', col(champ('c-hl', 'Hauteur de la ligne (cm)', 'Ligne'), champ('c-lc', 'Largeur de la colonne (cm)', 'Colonne'), lig(petit('repartirLignes', '', 'Répartir lignes'))) + col(champ('c-x', 'Position horizontale (cm)', 'Horiz.'), champ('c-y', 'Position verticale (cm)', 'Vert.'), lig(petit('repartirColonnes', '', 'Répartir colonnes'))))
   };
   P.maitre =
@@ -347,6 +347,7 @@ function menuCouleur(b, surChoix, opt = {}) {
       i.click();
     }
   });
+  if (opt.plus) items.push('-', ...opt.plus);
   memoriserSelectionTexte();
   ouvrirMenu(sousBouton(b), items, d);
 }
@@ -438,7 +439,7 @@ function ouvrirMenuNomme(nom, b) {
       { lib: 'Aligner à gauche', act: () => aligner('gauche') }, { lib: 'Centrer', act: () => aligner('centreH') }, { lib: 'Aligner à droite', act: () => aligner('droite') },
       { lib: 'Aligner en haut', act: () => aligner('haut') }, { lib: 'Aligner au milieu', act: () => aligner('milieu') }, { lib: 'Aligner en bas', act: () => aligner('bas') },
       '-', { lib: 'Distribuer horizontalement', act: () => aligner('distribuerH'), off: s.length < 3 }, { lib: 'Distribuer verticalement', act: () => aligner('distribuerV'), off: s.length < 3 }]),
-    remplissage: () => menuCouleur(b, c => surFormes(o => { if (o.type === 'wordart') o.wordart.couleur = c || '#000000'; else if (c) o.fond = { couleur: c }; else delete o.fond; }), { aucun: 'Aucun remplissage' }),
+    remplissage: () => menuCouleur(b, c => surFormes(o => { if (o.type === 'wordart') o.wordart.couleur = c || '#000000'; else if (c) o.fond = { couleur: c }; else delete o.fond; }), { aucun: 'Aucun remplissage', plus: [{ lib: 'Dégradé…', act: () => boiteDegrade() }, { lib: 'Motif (hachures)…', ic: 'motif', act: () => motifFormes() }] }),
     contour: () => menuContour(b, surFormes),
     vertical: () => ouvrirMenu(sousBouton(b), [['haut', 'En haut'], ['milieu', 'Au milieu'], ['bas', 'En bas']].map(([v, l]) => ({ lib: l, coche: s[0] && (s[0].vertical || 'haut') === v, act: () => surFormes(o => { if (o.type === 'texte') o.vertical = v; }) }))),
     margesTexte: () => ouvrirMenu(sousBouton(b), [['Aucune', 0], ['Étroites (1 mm)', 1], ['Moyennes (2,5 mm)', 2.54], ['Larges (5 mm)', 5]].map(([l, v]) => ({ lib: l, act: () => surFormes(o => { if (o.type === 'texte') o.marges = [v, v, v, v]; }) }))),
@@ -458,7 +459,7 @@ function ouvrirMenuNomme(nom, b) {
         .map(([l, w, h]) => ({ lib: l, act: () => changerTaillePage(...t(w, h)) })).concat(['-', { lib: 'Taille personnalisée…', act: boiteTaillePage }]));
     },
     couleurPage: () => menuCouleur(b, c => { avant(); if (c) P.fond = c; else delete P.fond; afficherPage(); dessinerVignettes(); apres(); }, { aucun: 'Aucune couleur (blanc)' }),
-    fondCellule: () => menuCouleur(b, c => fondCellules(c), { aucun: 'Aucun remplissage' }),
+    fondCellule: () => menuCouleur(b, c => fondCellules(c), { aucun: 'Aucun remplissage', plus: [{ lib: 'Motif (hachures)…', ic: 'motif', act: () => motifCellules() }] }),
     bordures: () => ouvrirMenu(sousBouton(b), [
       { lib: 'Toutes les bordures', ic: 'bordures', act: () => bordures('toutes') }, { lib: 'Bordures extérieures', act: () => bordures('exterieures') },
       { lib: 'Bordures intérieures', act: () => bordures('interieures') }, { lib: 'Aucune bordure', act: () => bordures('aucune') },

@@ -53,7 +53,7 @@ const entete = [
   `const LOGO_SVG = ${JSON.stringify(LOGO)};`
 ].join('\n');
 const JS = entete + '\n' + ['securite.js', 'lecteur_pub.js', 'rendu.js', 'metafichier.js', 'icones.js', 'editeur_noyau.js', 'editeur_texte.js', 'editeur_tableau.js',
-  'editeur_souris.js', 'editeur_ruban.js', 'editeur_plus.js', 'editeur_plus2.js', 'editeur_plus3.js', 'nouveautes.js', 'editeur_plus4.js', 'pwa.js', 'editeur_fichier.js']
+  'editeur_souris.js', 'editeur_ruban.js', 'editeur_plus.js', 'editeur_plus2.js', 'editeur_plus3.js', 'nouveautes.js', 'editeur_plus4.js', 'editeur_motifs.js', 'pwa.js', 'editeur_fichier.js']
   .map(n => `/* ==== ${n} ==== */\n` + S(n)).join('\n');
 
 // contrôle de syntaxe : une apostrophe oubliée rendrait toute l'application muette (déjà arrivé) ; on n'écrit rien dans ce cas

@@ -626,14 +626,17 @@ function surTouche(ev) {
 function copier() {
   if (!E.sel.length) return;
   const objs = copie(selection());
-  E.presse = { objets: objs, page: E.ip, n: 0 };
-  try { navigator.clipboard.writeText(objs.map(o => (o.html || '').replace(/<\/p>/g, '\n').replace(/<[^>]+>/g, '')).join('\n').trim()); } catch (e) { /* facultatif */ }
+  const images = {};
+  for (const o of objs) for (const k of imagesObjet(o)) if (E.fiche.images[k]) images[k] = E.fiche.images[k];
+  E.presse = { objets: objs, images, page: E.ip, n: 0 };
+  try { navigator.clipboard.writeText(objs.map(o => (o.html || '').replace(/<\/p>/g, '\n').replace(/<[^>]+>/g, '')).join('\n').trim()).catch(() => {}); } catch (e) { /* facultatif */ }
 }
 function couper() { copier(); supprimerSelection(); }
 function collerInterne() {
   if (!E.presse) return false;
   avant();
   E.presse.n++;
+  for (const [k, u] of Object.entries(E.presse.images || {})) if (!E.fiche.images[k]) E.fiche.images[k] = u; // collé dans un autre document
   const decal = E.presse.page === E.ip ? 4 * E.presse.n : 0;
   const objs = copie(E.presse.objets);
   renommerGroupes(objs);

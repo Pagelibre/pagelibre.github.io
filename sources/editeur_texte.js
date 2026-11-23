@@ -94,8 +94,8 @@ function cmdTexte(nom, val) {
       case 'italique': document.execCommand('italic'); break;
       case 'souligne': document.execCommand('underline'); break;
       case 'barre': document.execCommand('strikeThrough'); break;
-      case 'exposant': document.execCommand('superscript'); break;
-      case 'indice': document.execCommand('subscript'); break;
+      case 'exposant': positionTexte('superscript'); break;
+      case 'indice': positionTexte('subscript'); break;
       case 'police': document.execCommand('fontName', false, val); break;
       case 'couleur': document.execCommand('foreColor', false, val); break;
       case 'surligne': document.execCommand('hiliteColor', false, val || 'transparent'); break;
@@ -291,4 +291,16 @@ function restaurerSelectionTexte() {
   if (z) z.focus({ preventScroll: true });
   const s = window.getSelection();
   s.removeAllRanges(); s.addRange(selectionMemo);
+}
+
+// exposant ou indice : un texte déjà décalé (repris d'un .pub) revient d'abord à la normale
+function positionTexte(cmd) {
+  const s = window.getSelection(), z = zoneDeSelection();
+  const decales = z && s.rangeCount ? [...z.querySelectorAll('span[style*="vertical-align"]')].filter(x => /em$/.test(x.style.verticalAlign) && s.getRangeAt(0).intersectsNode(x) && s.toString().includes(x.textContent.trim())) : [];
+  if (!decales.length) { document.execCommand(cmd); return; }
+  for (const x of decales) {
+    const taille = parseFloat(x.style.fontSize);
+    x.style.verticalAlign = ''; x.style.lineHeight = '';
+    if (taille) x.style.fontSize = Math.round(taille / 0.65 * 2) / 2 + 'pt';
+  }
 }

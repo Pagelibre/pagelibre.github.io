@@ -737,7 +737,7 @@
           puce = `<span class="puce" contenteditable="false" style="${cssCar(sFin, base)}">${car} </span>`;
         }
         const s0 = sDom || sCar(runA(Q.runsCar, p));
-        out += `<p${ps.taquets ? ` data-taquets="${ps.taquets.join(';')}"` : ''} style="${cssPar(ps, s0.police || base.police, s0.taille || base.taille, s0.gras)}">${puce}${contenu}</p>`;
+        out += `<p${ps.taquets ? ` data-taquets="${ps.taquets.join(',')}"` : ''} style="${cssPar(ps, s0.police || base.police, s0.taille || base.taille, s0.gras)}">${puce}${contenu}</p>`;
         p = q + 1;
         if (q === fin) break;
       }
@@ -872,8 +872,17 @@
       // motif (hachures…) : petite image répétée, couleur de premier plan 0x181 et d'arrière-plan 0x183
       if (typeF === 1) {
         const pib = val(props, 0x186, 0);
-        const ref = pib ? refImage(pib) : null;
-        if (ref) { r.motif = ref; r.fondMotif = couleurRGB(val(props, 0x183, 0xffffff), palette) || '#ffffff'; }
+        const im = pib ? E.image(pib) : null, d = im && im.data;
+        // image BMP 8 × 8 à 1 bit : ses points clairs prennent la couleur de premier plan
+        if (d && d.length >= 94 && d[0] === 0x42 && d[1] === 0x4d) {
+          const v = vue(d), off = v.getUint32(10, true), tete = v.getUint32(14, true), haut = v.getInt32(22, true);
+          if (v.getInt32(18, true) === 8 && Math.abs(haut) === 8 && v.getUint16(28, true) === 1 && off + 32 <= d.length) {
+            const clair = [0, 1].map(i => { const q = 14 + tete + i * 4; return d[q] + d[q + 1] + d[q + 2] >= 384; });
+            let pts = '';
+            for (let y = 0; y < 8; y++) { const l = d[off + (haut > 0 ? 7 - y : y) * 4]; let o = 0; for (let x = 0; x < 8; x++) if (clair[(l >> (7 - x)) & 1]) o |= 128 >> x; pts += o.toString(16).padStart(2, '0'); }
+            r.points = pts; r.fondMotif = couleurRGB(val(props, 0x183, 0xffffff), palette) || '#ffffff';
+          }
+        }
       }
       return r;
     }
@@ -1068,7 +1077,8 @@
         else if (c.sens === 1) cel.sensTexte = 'bas-haut';
         const pc = tinfo.cellules.get(i);
         const fc = pc ? remplissage(pc) : null;
-        if (fc) cel.fond = fc.couleur;
+        if (fc && fc.points) cel.motif = { couleur: fc.couleur, fondMotif: fc.fondMotif, points: fc.points };
+        else if (fc) cel.fond = fc.couleur;
         return cel;
       });
       // Bordures : segments de la grille, dessinés dans le format .pub comme des

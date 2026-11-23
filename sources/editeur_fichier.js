@@ -105,9 +105,11 @@ function chargerFiche(fiche, opt = {}) {
 }
 
 /* ---------------- enregistrement ---------------- */
+// toutes les images dont dépend un objet : image, fond en image, motif (hachures)
+function imagesObjet(o) { return [o.image, o.fond && o.fond.image, o.fond && o.fond.motif].filter(Boolean); }
 function imagesUtilisees() {
   const u = new Set();
-  const voir = o => { if (o.image) u.add(o.image); if (o.fond && o.fond.image) u.add(o.fond.image); };
+  const voir = o => imagesObjet(o).forEach(k => u.add(k));
   for (const p of [...E.fiche.pages, ...Object.values(E.fiche.maitres)]) p.items.forEach(voir);
   return u;
 }

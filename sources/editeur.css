@@ -390,3 +390,12 @@ body.tactile .sep-lig { height: 18px; margin-top: -6px; }
 .nouveautes li { margin: 3px 0; }
 .liste-verif { display: flex; flex-direction: column; gap: 4px; max-height: 300px; overflow: auto; }
 .liste-verif .bouton { text-align: left; }
+
+/* remplissage à motif */
+.grille-motifs { display: grid; grid-template-columns: repeat(8, 40px); gap: 4px; max-height: 50vh; overflow: auto; padding: 2px; }
+.grille-motifs button { padding: 2px; border: 2px solid transparent; background: none; cursor: pointer; line-height: 0; }
+.grille-motifs button:hover { border-color: #a9c3dd; }
+.grille-motifs button[aria-selected="true"] { border-color: var(--vert); }
+.grille-motifs svg, #mo-apercu svg { border: 1px solid #bbb; }
+#mo-apercu { line-height: 0; display: flex; }
+#mo-apercu svg { border: 0; }

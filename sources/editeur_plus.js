@@ -757,12 +757,12 @@ function boiteColonnes() {
 function boiteTabulations() {
   const objs = selection().filter(o => o.type === 'texte');
   if (!objs.length) return;
-  ouvrirBoite('Tabulations', `<div class="grille-champs"><span>Écart entre les taquets (mm)</span><input id="bt-tab" class="champ champ-num" type="number" min="1" step="0.5" value="${objs[0].tabulation || 12.7}"></div>
+  ouvrirBoite('Tabulations', `<div class="grille-champs"><span>Écart entre les taquets (mm)</span><input id="bt-tab" class="champ champ-num" type="number" min="1" step="0.5" value="${objs[0].tabulation || tabulationDoc()}"></div>
     <p style="color:#666;max-width:380px">Chaque appui sur Tab dans ces zones de texte avance jusqu'au taquet suivant, placé tous les N mm.</p>`, () => {
     quitterEdition();
     avant();
     const v = +$('#bt-tab').value;
-    for (const o of objs) { if (v > 0 && v !== 12.7) o.tabulation = v; else delete o.tabulation; redessinerObjet(o); }
+    for (const o of objs) { if (v > 0 && v !== tabulationDoc()) o.tabulation = v; else delete o.tabulation; redessinerObjet(o); }
     apres();
   });
 }

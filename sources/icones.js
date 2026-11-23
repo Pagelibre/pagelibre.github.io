@@ -4,6 +4,7 @@ const ICONES = (function () {
   const s32 = c => `<svg viewBox="0 0 32 32" aria-hidden="true">${c}</svg>`;
   const B = '#2b579a', G = '#555', V = '#23405e', O = '#d48a1c', R = '#c43e1c';
   return {
+    motif: s16(`<path d="M1.5 1.5h13v13h-13z" fill="#fff" stroke="${G}"/><path d="M2 7l5-5M2 11l9-9M2 14.5L14.5 2M6 14.5L14.5 6M10 14.5l4.5-4.5" stroke="${B}" stroke-width="1.2"/>`),
     disquette: s16(`<path d="M2 2h10l2 2v10H2z" fill="none" stroke="#fff" stroke-width="1.3"/><path d="M5 2v4h5V2M4.5 14V9.5h7V14" fill="none" stroke="#fff" stroke-width="1.2"/>`),
     annuler: s16(`<path d="M5 3L2 6l3 3" fill="none" stroke="#fff" stroke-width="1.4"/><path d="M2.5 6H10a4 4 0 010 8H6" fill="none" stroke="#fff" stroke-width="1.4"/>`),
     refaire: s16(`<path d="M11 3l3 3-3 3" fill="none" stroke="#fff" stroke-width="1.4"/><path d="M13.5 6H6a4 4 0 000 8h4" fill="none" stroke="#fff" stroke-width="1.4"/>`),

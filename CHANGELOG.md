@@ -1,5 +1,12 @@
 # Nouveautés de PageLibre
 
+## 1.1.3 (23/11/2026)
+
+- Nouveau : remplissage à motif (hachures, trames, quadrillages…) pour les formes, les zones de texte et les cellules : Format › Motif.
+- Correction : les hachures (motifs) ne disparaissent plus à l’enregistrement.
+- Césure : le bouton agit aussi sur les tableaux. Exposant et Indice : retirent aussi ceux des fichiers .pub.
+- Tabulations : les réglages partent de la valeur du document. Copier-coller d’un document à l’autre : les images suivent.
+
 ## 1.1.2 (23/11/2026)
 
 - Volet Pages : les aperçus ne sont plus rognés à droite.
