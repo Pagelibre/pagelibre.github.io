@@ -1,5 +1,14 @@
 # Nouveautés de PageLibre
 
+## 1.3.0 (23/11/2026)
+
+- Nouveau : PDF en un clic (bouton PDF en haut à gauche, ou Fichier › Exporter) : texte net, recherche et copie, traits de coupe possibles.
+- Nouveau : export Word (.docx) qui garde la mise en page ; textes, tableaux, formes et images restent modifiables dans Word.
+- Corrections : habillage des deux côtés d’un objet (il pouvait s’arrêter après une ligne) et habillage serré autour d’une forme ronde.
+- Aide (F1) complétée : exports, hachures, diagrammes, bordures.
+- Première visite en ligne : la page ne se recharge plus toute seule.
+- Flèches de début de trait à leur place ; plus de ligatures automatiques, comme dans l’application d’origine.
+
 ## 1.2.0 (23/11/2026)
 
 - Nouveau : petites capitales (Accueil), secteurs de diagramme avec poignées jaunes pour les angles (Formes), bordures décoratives (Contour).

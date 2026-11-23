@@ -313,28 +313,34 @@ function afficherVueCoulisses(vue) {
     });
   } else if (vue === 'imprimer') {
     c.innerHTML = `<h1>Imprimer / PDF</h1>
+      <button class="gros-bouton" data-pdf>${ic('pdf')}<span>Enregistrer en PDF<br><small>en un clic, sans réglage : ${E.fiche.pages.length} page(s)</small></span></button>
       <button class="gros-bouton" data-imp>${ic('imprimer')}<span>Imprimer…<br><small>${E.fiche.pages.length} page(s), ${arrondi(P.w / 10, 1)} x ${arrondi(P.h / 10, 1)} cm</small></span></button>
-      <p>Pour obtenir un <b>PDF</b> : dans la fenêtre d'impression, choisissez l'imprimante « Enregistrer au format PDF » (ou l'imprimante PDF de votre système).</p>
-      <p>Réglez « Marges » sur <b>Aucune</b> et « Échelle » sur <b>100 %</b> (ou « Taille réelle ») pour garder la mise en page exacte. Cochez « Graphiques d'arrière-plan » si la fiche a des fonds de couleur.</p>
+      <p>Dans la fenêtre d'impression, réglez « Marges » sur <b>Aucune</b> et « Échelle » sur <b>100 %</b> (ou « Taille réelle ») pour garder la mise en page exacte. Cochez « Graphiques d'arrière-plan » si la fiche a des fonds de couleur.</p>
       <h2>Pour un imprimeur</h2>
       <label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="imp-coupe"> Ajouter les traits de coupe et un fond perdu de 3 mm (la feuille fait 2 cm de plus)</label>
       <p style="color:#777">Les objets qui dépassent du bord de la page sont gardés sur 3 mm, pour une coupe sans liseré blanc. Les couleurs restent en RVB : l'imprimeur fait la conversion en CMJN.</p>`;
+    $('[data-pdf]', c).onclick = () => exporterPDF($('#imp-coupe').checked);
     $('[data-imp]', c).onclick = () => imprimerAvecOptions($('#imp-coupe').checked);
     c.onclick = null;
   } else if (vue === 'exporter') {
     c.innerHTML = `<h1>Exporter</h1>
+      <button class="gros-bouton" data-ex="pdf">${ic('pdf')}<span>PDF<br><small>un clic : texte net, recherche et copie possibles</small></span></button>
+      <button class="gros-bouton" data-ex="word">${ic('word')}<span>Document Word (.docx)<br><small>même mise en page, textes et tableaux modifiables dans Word</small></span></button>
       <button class="gros-bouton" data-ex="tout">${ic('image')}<span>Toutes les pages en images PNG<br><small>une image par page, dans le dossier choisi</small></span></button>
       <button class="gros-bouton" data-ex="une">${ic('image')}<span>Cette page en image PNG<br><small>page ${E.ip + 1}</small></span></button>
       <div class="grille-champs" style="max-width:360px;margin-top:8px"><span>Qualité</span><select id="ex-dpi" class="champ"><option value="150">Écran (150 ppp)</option><option value="300" selected>Impression (300 ppp)</option></select></div>
       <button class="gros-bouton" data-fmt="html">${ic('html')}<span>Page web autonome (.html)<br><small>un seul fichier, s'ouvre d'un double-clic et reste modifiable</small></span></button>
       <button class="gros-bouton" data-fmt="pagelibre">${ic('page')}<span>Document PageLibre (.pagelibre)<br><small>format ouvert (JSON) : pages, styles, images</small></span></button>
-      <h2>Autres formats</h2>
-      <p>PDF : <i>Imprimer / PDF</i>, imprimante « Enregistrer au format PDF ».</p>
+      <h2>À savoir</h2>
+      <p>PDF : si la fiche utilise d'autres polices que Calibri, Cambria, Arial et Times New Roman, le navigateur demande une fois la permission de lire les polices installées. Si vous refusez, le texte concerné est repris en image haute définition (on peut toujours le chercher et le copier). Rien n'est envoyé sur Internet.</p>
+      <p>Word : chaque zone de texte reste à sa place. Les WordArt, les lettrines et les bordures décoratives changent de nature (images ou zones à part) ; les effets 3D ne sont pas repris.</p>
       <p style="color:#777">L'enregistrement au format .pub n'est pas proposé : c'est un format propriétaire non documenté.</p>`;
     c.onclick = ev => {
       const f = ev.target.closest('[data-fmt]');
       if (f) { exporterFormat(f.dataset.fmt); return; }
       const b = ev.target.closest('[data-ex]');
+      if (b && b.dataset.ex === 'pdf') { exporterPDF(false); return; }
+      if (b && b.dataset.ex === 'word') { exporterWord(); return; }
       if (b) { fermerCoulisses(); exporterImages(b.dataset.ex === 'tout', +$('#ex-dpi').value); }
     };
   } else if (vue === 'apropos') {

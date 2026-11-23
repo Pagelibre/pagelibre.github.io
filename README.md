@@ -16,6 +16,8 @@ Affiches, fiches, brochures, attestations… avec un ruban, des pages, des cadre
 - **Modèles prêts à l'emploi** : fiche de TP, fiche d'évaluation, fiche de procédure, QCM, consignes de sécurité, déroulé de séance, planning, affiche A3, attestation ; et **vos propres modèles** (Fichier › Nouveau › Mes modèles).
 - **Pareil partout** : polices libres intégrées aux mêmes mesures que Calibri, Cambria, Arial et Times New Roman (Carlito, Caladea, Arimo, Tinos) ; la mise en page ne dépend pas des polices installées sur l'ordinateur.
 - **Léger** : les images sont allégées à l'insertion ; « Compresser les images » réduit tout le document pour un mail ou un ENT.
+- **PDF en un clic** : texte net qu'on peut chercher et copier, structure lisible par les lecteurs d'écran, traits de coupe et fond perdu possibles.
+- **Export Word (.docx)** qui garde la mise en page : zones de texte, tableaux, formes et images restent modifiables dans Word.
 - **Pages d'un PDF en fond** : pour écrire par-dessus un document existant ou scanné.
 - **Tablette** : défilement au doigt, zoom à deux doigts, poignées plus grandes au toucher.
 - **Accessible** : texte de remplacement des images, navigation au clavier (Tab, F6), vérificateur d'accessibilité, aide intégrée (F1).
@@ -39,7 +41,8 @@ Les mises à jour arrivent toutes seules : un message « Nouvelle version dispon
 | `.pagelibre` | format natif, ouvert (JSON) : pages, styles, images intégrées |
 | `.html` | page web autonome : un seul fichier, s'ouvre d'un double-clic et reste modifiable |
 | `.png` | export d'une page ou de toutes les pages en images |
-| PDF | par l'impression du navigateur (« Enregistrer au format PDF ») ; traits de coupe et fond perdu possibles |
+| PDF | export en un clic (ou par l'impression du navigateur) ; traits de coupe et fond perdu possibles. Avec d'autres polices que les quatre intégrées, le navigateur demande la permission de lire les polices installées ; sans elle, le texte concerné est en image haute définition, toujours cherchable |
+| `.docx` | export Word fidèle à la page. Les WordArt et les bordures décoratives deviennent des images, le texte qui contourne un objet est coupé ligne par ligne, les effets 3D ne sont pas repris |
 | `.pub` | ouverture seulement (pas d'enregistrement dans ce format) |
 
 ## Confidentialité

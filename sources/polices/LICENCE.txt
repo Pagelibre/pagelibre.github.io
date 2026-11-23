@@ -1,4 +1,4 @@
-Polices intégrées à PageLibre (partie « latin », format WOFF2), toutes sous SIL Open Font License 1.1 :
+Polices intégrées à PageLibre (partie « latin », format WOFF ; Arimo : une police par graisse, tirée de la police variable), toutes sous SIL Open Font License 1.1 :
 
 - Carlito (mêmes mesures que Calibri) : Copyright 2013 The Carlito Project Authors (https://github.com/googlefonts/carlito), with Reserved Font Name "Carlito"
 - Caladea (mêmes mesures que Cambria) : Copyright 2012 The Caladea Project Authors (https://github.com/huertatipografica/Caladea)

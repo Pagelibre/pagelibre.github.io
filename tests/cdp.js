@@ -1,6 +1,6 @@
 // Pilotage d'Edge sans fenêtre par le protocole CDP (sans puppeteer).
 'use strict';
-const { spawn } = require('child_process');
+const { spawn, spawnSync } = require('child_process');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
@@ -104,10 +104,18 @@ async function lancer(options = {}) {
       await attendre(40);
     },
     async fermer() {
+      // fermeture demandée au navigateur : tuer le seul processus lancé laissait tourner tous les autres
+      try { await Promise.race([envoyer('Browser.close'), attendre(3000)]); } catch (e) { /* déjà fermé */ }
       try { ws.close(); } catch (e) { /* */ }
+      for (let i = 0; i < 20; i++) {
+        await attendre(150);
+        try { fs.rmSync(profil, { recursive: true, force: true }); } catch (e) { /* profil encore verrouillé */ }
+        if (!fs.existsSync(profil)) return;
+      }
       proc.kill();
-      await attendre(300);
-      try { fs.rmSync(profil, { recursive: true, force: true }); } catch (e) { /* profil encore verrouillé */ }
+      // dernier recours (Windows) : les processus de ce profil d'essai, et eux seuls
+      if (process.platform === 'win32') spawnSync('powershell', ['-NoProfile', '-Command', `Get-CimInstance Win32_Process -Filter "Name='msedge.exe'" | Where-Object { $_.CommandLine -match '${path.basename(profil)}' } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }`]);
+      try { fs.rmSync(profil, { recursive: true, force: true }); } catch (e) { /* */ }
     }
   };
   return api;

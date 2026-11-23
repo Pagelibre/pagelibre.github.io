@@ -7,6 +7,7 @@
   font-family: 'Times New Roman', serif;
   font-size: 10pt;
   line-height: normal;
+  font-variant-ligatures: no-common-ligatures; /* comme l'application d'origine : pas de ligatures automatiques */
 }
 .feuille .calque-maitre, .feuille .calque-objets { position: absolute; inset: 0; }
 .feuille .calque-maitre { pointer-events: none; }

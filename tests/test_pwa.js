@@ -30,6 +30,7 @@ const serveur = http.createServer((req, rep) => {
   try {
     await edge.ouvrir(url);
     await attendre(1500);
+    verifier(await edge.eval(`performance.getEntriesByType('navigation')[0].type`) === 'navigate', 'première visite : la page ne se recharge pas toute seule');
     const man = await edge.envoyer('Page.getAppManifest');
     verifier(man.url && !man.errors.length, `manifeste lu sans erreur (${man.url.replace(url, '')})`);
     let inst = null;

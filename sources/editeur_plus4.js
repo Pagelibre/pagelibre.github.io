@@ -565,7 +565,7 @@ function vueAide(c) {
       <li><b>Ajouter</b> du texte, une image, une forme ou un tableau : onglet Accueil ou Insertion, puis tracez l'objet sur la page.</li>
       <li><b>Écrire</b> : cliquez dans une zone de texte. <b>Déplacer</b> : saisissez le cadre par son bord.</li>
       <li><b>Enregistrer</b> : Ctrl+S. Le document reste sur votre appareil (fichier .pagelibre, ou page web .html).</li>
-      <li><b>Imprimer ou faire un PDF</b> : Ctrl+P, imprimante « Enregistrer au format PDF », marges « Aucune ».</li></ol></details>
+      <li><b>Faire un PDF</b> : le bouton PDF en haut à gauche. <b>Imprimer</b> : Ctrl+P, marges « Aucune ».</li></ol></details>
     <details><summary>Souris, doigt et stylet</summary>
       <ul><li>Poignées rondes : agrandir ; flèche ronde : faire pivoter ; Maj : garder les proportions.</li>
       <li>Ctrl+molette : zoom ; clic droit : menu de l'objet.</li>
@@ -578,10 +578,21 @@ function vueAide(c) {
       <li>Affichage › <b>Vérifier l'accessibilité</b> : images non décrites, textes trop petits ou peu contrastés.</li></ul></details>
     <details><summary>Raccourcis</summary>
       <p>Ctrl+S enregistrer · Ctrl+P imprimer · Ctrl+Z / Ctrl+Y annuler / rétablir · Ctrl+C / X / V copier, couper, coller · Ctrl+D dupliquer · Suppr effacer · Ctrl+G / Ctrl+Maj+G grouper / dissocier · Ctrl+F rechercher · Ctrl+H remplacer · Ctrl+K lien · Ctrl+0 page entière · F9 100 %</p></details>
-    <details><summary>Images, PDF et fichiers</summary>
+    <details><summary>Donner son document : PDF, Word, images, impression</summary>
+      <ul><li><b>PDF</b> : bouton PDF en haut à gauche. Le texte reste net ; on peut le chercher et le copier. Pour un imprimeur : Fichier › Imprimer / PDF, traits de coupe.</li>
+      <li>Si le navigateur demande à lire les polices installées, acceptez : sinon, le texte écrit avec d'autres polices que Calibri, Cambria, Arial et Times New Roman devient une image haute définition.</li>
+      <li><b>Word</b> : Fichier › Exporter. La mise en page est gardée ; textes, tableaux, formes et images se modifient dans Word. Les WordArt et les bordures décoratives deviennent des images, le texte qui contourne un objet est coupé ligne par ligne, les effets 3D ne sont pas repris.</li>
+      <li><b>Images</b> : Fichier › Exporter, une image PNG par page.</li>
+      <li><b>Imprimer</b> : Ctrl+P, marges « Aucune », échelle 100 %, « Graphiques d'arrière-plan » cochés.</li></ul></details>
+    <details><summary>Formes, hachures, diagrammes, bordures</summary>
+      <ul><li><b>Motif (hachures)</b> : Format › Remplissage, pour une forme, une zone de texte ou une cellule.</li>
+      <li><b>Secteur</b> de diagramme : dans les formes ; les poignées jaunes règlent les angles.</li>
+      <li><b>Bordure décorative</b> : Format › Contour. <b>Petites capitales</b> : bouton Aᴀ de l'onglet Accueil.</li>
+      <li><b>Habillage</b> : le texte contourne l'objet (carré), ou suit sa forme (serré).</li></ul></details>
+    <details><summary>Images et fichiers</summary>
       <ul><li>Les images sont <b>allégées</b> à l'insertion. Image › <b>Compresser les images</b> réduit tout le document (pour un mail ou l'ENT).</li>
       <li>Insertion › <b>Pages d'un PDF</b> : chaque page d'un PDF devient le fond d'une page, pour écrire par-dessus. Création de page › <b>Image de fond</b> fait de même avec une image (document scanné).</li>
-      <li>Formats : .pagelibre (format ouvert), .html (s'ouvre d'un double-clic), PDF et PNG (export), .pub (ouverture seulement).</li>
+      <li>Formats : .pagelibre (format ouvert), .html (s'ouvre d'un double-clic), PDF, Word et PNG (Fichier › Exporter), .pub (ouverture seulement).</li>
       <li>Les polices Calibri, Cambria, Arial et Times New Roman ont des équivalentes libres intégrées : la fiche s'affiche pareil sur tous les ordinateurs.</li></ul></details>
     <details><summary>Confidentialité</summary>
       <p>Tout reste sur votre appareil : pas de compte, pas de statistiques, rien n'est envoyé. Un document reçu de quelqu'un est nettoyé à l'ouverture : seul le contenu mis en forme est gardé.</p></details>

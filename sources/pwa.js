@@ -40,6 +40,7 @@ function initPWA() {
 
   // service worker
   if (!EN_LIGNE || !('serviceWorker' in navigator)) return;
+  let demandee = false; // la personne a cliqué sur « Recharger »
   navigator.serviceWorker.register('sw.js').then(reg => {
     const proposer = w => {
       const bd = $('#bandeau');
@@ -48,8 +49,8 @@ function initPWA() {
       bd.hidden = false;
       $('[data-p]', bd).onclick = () => { bd.hidden = true; };
       $('[data-r]', bd).onclick = () => {
-        if (E.modifie) sauverBrouillon();
-        w.postMessage('activer');
+        demandee = true;
+        Promise.resolve(E.modifie ? sauverBrouillon() : 0).finally(() => w.postMessage('activer')); // le brouillon d'abord
       };
     };
     if (reg.waiting && navigator.serviceWorker.controller) proposer(reg.waiting);
@@ -63,9 +64,12 @@ function initPWA() {
     // vérifie les mises à jour toutes les heures si l'application reste ouverte
     setInterval(() => reg.update().catch(() => {}), 3600 * 1000);
   }).catch(e => console.warn('Service worker non enregistré', e));
+  // première visite (aucun service worker avant) : rien à recharger ; mise à jour demandée dans un autre onglet :
+  // on ne recharge pas un document en cours de modification
+  const avait = !!navigator.serviceWorker.controller;
   let recharge = false;
   navigator.serviceWorker.addEventListener('controllerchange', () => {
-    if (recharge) return;
+    if (recharge || !avait || (E.modifie && !demandee)) return;
     recharge = true;
     location.reload();
   });

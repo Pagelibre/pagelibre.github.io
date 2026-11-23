@@ -197,7 +197,7 @@
     for (const [cote, k] of [['start', 'flecheDebut'], ['end', 'flecheFin']]) {
       if (!t[k]) continue;
       const id = 'mk' + (++compteurDef);
-      const m = el('marker', { id, viewBox: '0 0 10 10', refX: cote === 'end' ? 9 : 1, refY: 5, markerWidth: 4, markerHeight: 4, orient: 'auto-start-reverse', markerUnits: 'strokeWidth' }, defs);
+      const m = el('marker', { id, viewBox: '0 0 10 10', refX: 9, refY: 5, markerWidth: 4, markerHeight: 4, orient: 'auto-start-reverse', markerUnits: 'strokeWidth' }, defs);
       el('path', { d: 'M0 0L10 5L0 10Z', fill: t.couleur }, m);
       e.setAttribute('marker-' + cote, `url(#${id})`);
     }
@@ -528,11 +528,19 @@
       zones.sort((a, b) => a.y1 - b.y1);
       const H = Math.max(...zones.map(r => r.y2));
       const W = cote === 'left' ? Math.max(...zones.map(r => r.x2)) : iw - Math.min(...zones.map(r => r.x1));
-      const pts = [];
-      for (const r of zones) {
-        const xa = cote === 'left' ? 0 : r.x1 - (iw - W), xb = cote === 'left' ? r.x2 : W;
-        pts.push([xa, r.y1], [xb, r.y1], [xb, r.y2], [xa, r.y2]);
+      // contour : on descend le long du bord de l'objet, on remonte le long du bord de la zone de texte
+      const bord = cote === 'left' ? 0 : W, pts = [];
+      const ys = [...new Set(zones.flatMap(r => [r.y1, r.y2]))].sort((a, b) => a - b);
+      let dedans = false;
+      for (let i = 0; i + 1 < ys.length; i++) {
+        const milieu = (ys[i] + ys[i + 1]) / 2, ici = zones.filter(r => r.y1 < milieu && r.y2 > milieu);
+        if (!ici.length) { if (dedans) pts.push([bord, ys[i]]); dedans = false; continue; }
+        const x = cote === 'left' ? Math.max(...ici.map(r => r.x2)) : Math.min(...ici.map(r => r.x1)) - (iw - W);
+        if (!dedans) pts.push([bord, ys[i]]);
+        pts.push([x, ys[i]], [x, ys[i + 1]]);
+        dedans = true;
       }
+      if (dedans) pts.push([bord, ys[ys.length - 1]]);
       const span = document.createElement('span');
       span.className = 'habillage';
       span.setAttribute('contenteditable', 'false');
@@ -711,7 +719,7 @@
       for (const zo of zones) if (y + h > zo.y1 && y < zo.y2) { ex1 = Math.min(ex1, zo.x1); ex2 = Math.max(ex2, zo.x2); }
       if (ex2 < ex1 || x2 <= ex1) continue;
       lignesFaites.add(cle);
-      if (x1 >= ex2) continue;
+      if (x1 >= ex2 - 0.1) continue; // déjà repoussé (aux arrondis de l'écran près, sinon on ajouterait des blancs sans fin)
       // ce mot touche l'objet : un blanc le repousse juste après l'objet
       const esp = document.createElement('span');
       esp.className = 'hab-espace';

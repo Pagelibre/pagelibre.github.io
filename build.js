@@ -30,11 +30,10 @@ function cssPolices() {
   const regles = [];
   for (const [libre, origine, locales] of POLICES_LIBRES) {
     for (const style of ['normal', 'italic']) for (const poids of ['400', '700']) {
-      // Arimo est une police « variable » : un seul fichier par style pour les deux graisses
-      const f = [`${libre}-${style}-${poids}.woff2`, `${libre}-${style}-400.woff2`].map(n => path.join(dossier, n)).find(fs.existsSync);
+      const f = [`${libre}-${style}-${poids}.woff`, `${libre}-${style}-400.woff`].map(n => path.join(dossier, n)).find(fs.existsSync);
       const donnees = fs.readFileSync(f).toString('base64');
       const [l1, l2] = locales[poids + style];
-      regles.push(`@font-face{font-family:'${origine}';font-style:${style};font-weight:${poids};font-display:swap;src:local('${l1}'),local('${l2}'),url(data:font/woff2;base64,${donnees}) format('woff2')}`);
+      regles.push(`@font-face{font-family:'${origine}';font-style:${style};font-weight:${poids};font-display:swap;src:local('${l1}'),local('${l2}'),url(data:font/woff;base64,${donnees}) format('woff')}`);
     }
   }
   return `/* Polices libres intégrées (${POLICES_LIBRES.map(p => p[0] + ' pour ' + p[1]).join(', ')}).\n` + fs.readFileSync(path.join(dossier, 'LICENCE.txt'), 'utf8').replace(/\*\//g, '* /') + '\n*/\n' + regles.join('\n') + '\n';
@@ -53,7 +52,7 @@ const entete = [
   `const LOGO_SVG = ${JSON.stringify(LOGO)};`
 ].join('\n');
 const JS = entete + '\n' + ['securite.js', 'lecteur_pub.js', 'rendu.js', 'metafichier.js', 'icones.js', 'editeur_noyau.js', 'editeur_texte.js', 'editeur_tableau.js',
-  'editeur_souris.js', 'editeur_ruban.js', 'editeur_plus.js', 'editeur_plus2.js', 'editeur_plus3.js', 'nouveautes.js', 'editeur_plus4.js', 'editeur_motifs.js', 'editeur_plus5.js', 'pwa.js', 'editeur_fichier.js']
+  'editeur_souris.js', 'editeur_ruban.js', 'editeur_plus.js', 'editeur_plus2.js', 'editeur_plus3.js', 'nouveautes.js', 'editeur_plus4.js', 'editeur_motifs.js', 'editeur_plus5.js', 'export_commun.js', 'export_docx.js', 'export_pdf.js', 'pwa.js', 'editeur_fichier.js']
   .map(n => `/* ==== ${n} ==== */\n` + S(n)).join('\n');
 
 // contrôle de syntaxe : une apostrophe oubliée rendrait toute l'application muette (déjà arrivé) ; on n'écrit rien dans ce cas
