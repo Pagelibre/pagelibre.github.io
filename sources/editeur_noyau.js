@@ -578,6 +578,8 @@ function dessinerVignettes() {
     const m = document.createElement('div');
     m.className = 'mini';
     v.append(n, m);
+    v.setAttribute('role', 'button'); v.tabIndex = 0; v.setAttribute('aria-label', v.title);
+    v.addEventListener('keydown', ev => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); ev.stopPropagation(); allerPage(i); } });
     l.appendChild(v);
     remplirVignette(i, m);
   });

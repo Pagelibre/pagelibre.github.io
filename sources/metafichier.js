@@ -363,6 +363,14 @@
     return t;
   })();
   const estSymbol = nom => /^symbol$/i.test(nom || '');
+  // jeu de caractères d'une police WMF (lfCharSet) → page de codes Windows
+  const PAGES_CODES = { 161: 'windows-1253', 162: 'windows-1254', 163: 'windows-1258', 177: 'windows-1255', 178: 'windows-1256', 186: 'windows-1257', 204: 'windows-1251', 222: 'windows-874', 238: 'windows-1250' };
+  const decodeurs = {};
+  function decodeur(jeu) {
+    const page = PAGES_CODES[jeu] || 'windows-1252';
+    if (!decodeurs[page]) { try { decodeurs[page] = new TextDecoder(page); } catch (e) { decodeurs[page] = new TextDecoder('windows-1252'); } }
+    return decodeurs[page];
+  }
   function versUnicodeSymbol(octets) { let s = ''; for (const b of octets) s += SYMBOL[b] || String.fromCharCode(b); return s; }
 
   /* ---------- WMF ---------- */
@@ -395,7 +403,6 @@
     const objets = [];
     const pile = [];
     const ajouter = ob => { let i = 0; while (objets[i]) i++; objets[i] = ob; };
-    const dec = typeof TextDecoder !== 'undefined' ? new TextDecoder('windows-1252') : null;
     let St = S;
     function appliquer() {
       const sx = c.width / (St.wex || 1), sy = c.height / (St.wey || 1);
@@ -430,7 +437,7 @@
         case 0x02FB: {
           let nom = '';
           for (let i = 0; i < 32 && p + 18 + i < o + taille; i++) { const ch = dv.getUint8(p + 18 + i); if (!ch) break; nom += String.fromCharCode(ch); }
-          ajouter({ t: 'f', hauteur: i16(0) || 12, angle: i16(4), gras: i16(8) >= 600, italique: !!dv.getUint8(p + 10), nom: nom || 'Arial' });
+          ajouter({ t: 'f', hauteur: i16(0) || 12, largeur: i16(2), angle: i16(4), gras: i16(8) >= 600, italique: !!dv.getUint8(p + 10), jeu: dv.getUint8(p + 13), nom: nom || 'Arial' });
           break;
         }
         case 0x00F7: case 0x01F9: case 0x0142: case 0x06FF: ajouter({ t: 'x' }); break;
@@ -474,8 +481,9 @@
           if (f === 0x0521) { n = i16(0); so = p + 2; const pad = n + (n & 1); y = i16(2 + pad); x = i16(4 + pad); }
           else { y = i16(0); x = i16(2); n = i16(4); const opt = dv.getUint16(p + 6, true); so = p + 8 + (opt & 6 ? 8 : 0); }
           const octets = u8.subarray(so, so + n);
-          const symbole = estSymbol(St.police.nom);
-          const s = symbole ? versUnicodeSymbol(octets) : dec ? dec.decode(octets) : String.fromCharCode(...octets);
+          // jeu de caractères de la police : 2 = Symbol, 161 = grec (σ s'écrit 0xF3), 204 = cyrillique…
+          const symbole = estSymbol(St.police.nom) || St.police.jeu === 2;
+          const s = symbole ? versUnicodeSymbol(octets) : decodeur(St.police.jeu).decode(octets);
           // espacement de chaque caractère (ExtTextOut), en unités logiques, s'il est fourni
           const finTexte = so + n + (n & 1);
           const ecarts = f === 0x0A32 && finTexte + n * 2 <= o + taille ? Array.from({ length: n }, (_, i) => dv.getInt16(finTexte + i * 2, true)) : null;
@@ -493,6 +501,12 @@
           const a = St.alignTexte;
           ctx.textAlign = (a & 6) === 6 ? 'center' : (a & 2) ? 'right' : 'left';
           ctx.textBaseline = (a & 24) === 24 ? 'alphabetic' : (a & 8) ? 'bottom' : 'top';
+          // largeur imposée (grandes parenthèses des équations) : largeur moyenne demandée / largeur moyenne de la police
+          if (St.police.largeur) {
+            const moy = symbole ? 0.6 : /times/i.test(St.police.nom) ? 0.401 : 0.45;
+            const kx = Math.abs(St.police.largeur * m.a) / (moy * hpx);
+            if (kx > 0.2 && kx < 5) ctx.scale(kx, 1);
+          }
           if (ecarts && ctx.textAlign === 'left' && s.length === n && n > 1) {
             let cx = 0;
             for (let i = 0; i < n; i++) { ctx.fillText(s[i], cx, 0); cx += ecarts[i] * Math.abs(m.a); }

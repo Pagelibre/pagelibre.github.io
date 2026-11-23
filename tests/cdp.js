@@ -15,7 +15,7 @@ async function lancer(options = {}) {
   const largeur = options.largeur || 1400, hauteur = options.hauteur || 900;
   const proc = spawn(EDGE, [
     '--headless=new', `--remote-debugging-port=${port}`, `--user-data-dir=${profil}`,
-    '--allow-file-access-from-files', '--no-first-run', '--disable-gpu', '--hide-scrollbars',
+    '--allow-file-access-from-files', '--no-first-run', '--disable-gpu', ...(options.barres ? [] : ['--hide-scrollbars']), // barres : true → barres de défilement visibles, comme chez l'utilisateur
     `--window-size=${largeur},${hauteur}`, '--force-device-scale-factor=1', 'about:blank'
   ], { stdio: 'ignore' });
   let cible = null;

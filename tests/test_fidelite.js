@@ -69,11 +69,42 @@ function wmfEquation() {
     v(r.droite > 500, `« 150 » entier, non coupé au bord (${r.droite} points dans la zone du « 50 »)`);
     v(r.gauche > 500, `Σ (police Symbol) dessiné (${r.gauche} points)`);
 
+    /* secteur (arc), motif, ombre, tabulation du document, tableau (hauteur de ligne, milieu, marges), césure */
+    await edge.eval(`E.modifie = false; chargerFiche(normaliserFiche({ titre: 'formes', page: { w: 210, h: 297, tabulation: 10 },
+      images: { mo: 'data:image/bmp;base64,' + btoa(String.fromCharCode(0x42,0x4d,0x5e,0,0,0,0,0,0,0,0x3e,0,0,0,0x28,0,0,0,8,0,0,0,8,0,0,0,1,0,1,0,0,0,0,0,32,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,255,255,255,0,0x80,0,0,0,0x40,0,0,0,0x20,0,0,0,0x10,0,0,0,8,0,0,0,4,0,0,0,2,0,0,0,1,0,0,0)) },
+      pages: [{ id: 'p1', items: [
+      { id: 'sec', type: 'forme', forme: 'libre', x: 20, y: 20, w: 40, h: 40, fond: { couleur: '#000000', motif: 'mo', fondMotif: '#ffffff' }, trait: { couleur: '#000000', epaisseur: 1 }, ombre: { dx: 1.41, dy: 1.41, flou: 0, couleur: '#808080' },
+        geometrie: { pts: [[0, 0], [21600, 21600], [10800, 21600], [21600, 10800], [10800, 10800]], segs: [41732, 1, 24577, 32768], cadre: [0, 0, 21600, 21600] } },
+      { id: 'tx', type: 'texte', forme: 'rect', x: 20, y: 80, w: 160, h: 20, marges: [1, 1, 1, 1], html: '<p style="line-height:1.059;font-family:Times New Roman;font-size:14pt"><span style="font-family:Times New Roman;font-size:14pt">	<b id="x">Mot</b></span></p>' },
+      { id: 'tab', type: 'tableau', x: 20, y: 120, w: 60, h: 11.92, tableau: { cols: [30, 30], lignes: [5.96, 5.96], marges: [1.02, 1.02, 1.02, 1.02], cellules: [0, 1, 2, 3].map(i => ({ l: i >> 1, c: i & 1, nl: 1, nc: 1, vertical: 'milieu', html: '<p style="line-height:1.059;font-family:Times New Roman;font-size:10pt"><span style="font-family:Times New Roman;font-size:10pt">294</span></p>', bords: { h: { c: '#000000', e: 0.75 }, b: { c: '#000000', e: 0.75 }, g: { c: '#000000', e: 0.75 }, d: { c: '#000000', e: 0.75 } } })) } }
+      ] }] }))`);
+    await attendre(500);
+    const fo = await edge.eval(`(() => { const k = 96 / 25.4 * E.zoom, s = elementObjet('sec'), p = s.querySelector('svg > g > path'); const tx = elementObjet('tx'), b = tx.querySelector('b').getBoundingClientRect(), c = tx.querySelector('.contenu').getBoundingClientRect();
+      return { d: p.getAttribute('d'), motif: s.querySelectorAll('pattern path').length, fill: p.getAttribute('fill'), ombre: s.style.filter, tab: +((b.left - c.left) / k).toFixed(1), ligne: +(elementObjet('tab').querySelector('tr').getBoundingClientRect().height / k).toFixed(2), va: getComputedStyle(elementObjet('tab').querySelector('td')).verticalAlign }; })()`);
+    v(/A/.test(fo.d) && /L/.test(fo.d) && /Z/.test(fo.d), 'secteur : arc, rayon et fermeture (' + fo.d.slice(0, 60) + ')');
+    v(fo.motif === 1 && /url/.test(fo.fill), 'remplissage à motif (hachures) recoloré');
+    v(/drop-shadow/.test(fo.ombre), 'ombre portée');
+    v(Math.abs(fo.tab - 10) < 0.3, `tabulation par défaut du document : ${fo.tab} mm (attendu 10)`);
+    v(Math.abs(fo.ligne - 5.96) < 0.15 && fo.va === 'middle', `ligne de tableau à sa hauteur : ${fo.ligne} mm (attendu 5,96), texte au milieu`);
+    v(await edge.eval(`Rendu.coupuresMot('indicateurs').length > 0`), 'césure disponible');
+
     /* page entière */
     await edge.eval(`zoomPage()`);
     await attendre(300);
     const z = await edge.eval(`(() => { const d = document.querySelector('#defile').getBoundingClientRect(), f = E.feuille.getBoundingClientRect(); return { haut: Math.round(f.top - d.top), bas: Math.round(d.bottom - f.bottom) }; })()`);
     v(z.haut >= 0 && z.bas >= 0, `page entière : toute la page est visible (marge haute ${z.haut} px, basse ${z.bas} px)`);
+
+    /* vignettes : aperçu entier, avec une vraie barre de défilement (ce que les autres tests ne voient pas) */
+    const edge2 = await lancer({ largeur: 1300, hauteur: 800, barres: true });
+    try {
+      await edge2.ouvrir(URL_EDITEUR);
+      await attendre(800);
+      await edge2.eval(`E.modifie = false; chargerFiche(normaliserFiche({ titre: 'v', page: { w: 210, h: 297 }, pages: Array.from({ length: 12 }, (_, i) => ({ id: 'p' + i, items: [] })) }))`);
+      await attendre(600);
+      const vg = await edge2.eval(`(() => { const l = document.querySelector('#liste-pages'), m = l.querySelector('.mini'), f = m.querySelector('.feuille').getBoundingClientRect(), r = m.getBoundingClientRect(), L = l.getBoundingClientRect();
+        return { barre: l.offsetWidth - l.clientWidth, depasse: +(f.right - r.right).toFixed(1), ratio: +(r.width / r.height).toFixed(3), dansListe: r.right <= L.left + l.clientWidth + 0.5 }; })()`);
+      v(vg.barre > 0 && vg.depasse <= 0.5 && Math.abs(vg.ratio - 210 / 297) < 0.01 && vg.dansListe, `vignette entière avec une barre de défilement de ${vg.barre} px (dépassement ${vg.depasse} px, proportions ${vg.ratio})`);
+    } finally { await edge2.fermer(); }
 
     const erreurs = edge.consoleMsgs.filter(m => /EXCEPTION|TypeError|ReferenceError/i.test(m));
     v(!erreurs.length, 'aucune erreur JavaScript' + (erreurs.length ? ' : ' + erreurs.join(' | ') : ''));

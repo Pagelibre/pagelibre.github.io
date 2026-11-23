@@ -56,6 +56,8 @@ const JS = entete + '\n' + ['securite.js', 'lecteur_pub.js', 'rendu.js', 'metafi
   'editeur_souris.js', 'editeur_ruban.js', 'editeur_plus.js', 'editeur_plus2.js', 'editeur_plus3.js', 'nouveautes.js', 'editeur_plus4.js', 'pwa.js', 'editeur_fichier.js']
   .map(n => `/* ==== ${n} ==== */\n` + S(n)).join('\n');
 
+// contrôle de syntaxe : une apostrophe oubliée rendrait toute l'application muette (déjà arrivé) ; on n'écrit rien dans ce cas
+try { new (require('vm').Script)(JS, { filename: 'PageLibre' }); } catch (e) { console.error(String(e.stack).split('\n').slice(0, 4).join('\n')); throw new Error('Code invalide, rien n\'est assemblé : ' + e.message); }
 if (/<\/script/i.test(JS)) throw new Error('Le code contient « </script » : à écrire « <\\/script » pour ne pas casser la page.');
 if (/<\/style/i.test(CSS + CSS_RENDU)) throw new Error('Le CSS contient « </style ».');
 

@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-Irw95dnXNVong8BqbrCGZ+c1nNkhq11iDJ0gW7T+Vps='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' data: blob:; worker-src 'self' blob:; media-src 'self' data: blob:; object-src 'none'; base-uri 'none'; form-action 'none'; frame-src 'none'; manifest-src 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-CvHQVttSWDcfLjVCXtfq0r4fn1N3RA/e6U/zQIEFeuE='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' data: blob:; worker-src 'self' blob:; media-src 'self' data: blob:; object-src 'none'; base-uri 'none'; form-action 'none'; frame-src 'none'; manifest-src 'self'">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>PageLibre</title>
 <meta name="description" content="PageLibre : logiciel libre et gratuit de mise en page (affiches, fiches, brochures), dans le navigateur. Ouvre aussi les anciens fichiers .pub.">
@@ -309,16 +309,17 @@ select.champ:focus, input.champ:focus { outline: 1px solid var(--vert); border-c
 
 /* corps */
 /* hauteur bornée : la zone de travail défile au lieu de pousser la barre d'état */
-#corps { display: grid; grid-template-columns: 150px minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); min-height: 0; overflow: hidden; }
+#corps { display: grid; grid-template-columns: 172px minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); min-height: 0; overflow: hidden; }
 #corps.sans-volet { grid-template-columns: 0 minmax(0, 1fr); }
 #volet-pages { background: #fff; border-right: 1px solid var(--ruban-bord); display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
 .volet-titre { padding: 6px 10px; font-size: 13px; color: var(--texte); border-bottom: 1px solid #eee; }
-#liste-pages { overflow-y: auto; padding: 8px 6px 20px; flex: 1; }
+#liste-pages { overflow-y: auto; scrollbar-gutter: stable; padding: 8px 6px 20px; flex: 1; }
 .vignette { display: flex; gap: 4px; align-items: flex-start; margin-bottom: 10px; cursor: pointer; padding: 3px; border: 2px solid transparent; }
 .vignette:hover { background: #f1f1f1; }
 .vignette.active { border-color: var(--vert); background: var(--vert-clair); }
 .vignette .num { width: 16px; text-align: right; color: var(--texte-doux); padding-top: 2px; }
-.vignette .mini { position: relative; overflow: hidden; background: #fff; box-shadow: 0 0 0 1px #bdbdbd; pointer-events: none; }
+/* flex: none : sans cela, la barre de défilement rétrécit la vignette et rogne l'aperçu à droite */
+.vignette .mini { flex: none; position: relative; overflow: hidden; background: #fff; box-shadow: 0 0 0 1px #bdbdbd; pointer-events: none; }
 .vignette .mini > .feuille { transform-origin: 0 0; position: absolute; left: 0; top: 0; }
 
 #zone { position: relative; display: grid; grid-template-columns: 22px minmax(0, 1fr); grid-template-rows: 22px minmax(0, 1fr); min-height: 0; min-width: 0; overflow: hidden; background: var(--espace); }
@@ -680,8 +681,8 @@ body.tactile .sep-lig { height: 18px; margin-top: -6px; }
 
 <script id="fiche-integree" type="application/json">null</script>
 <script>
-const VERSION_EDITEUR = '2026-11-23T11:52';
-const VERSION_NOM = '1.1.1';
+const VERSION_EDITEUR = '2026-11-23T17:35';
+const VERSION_NOM = '1.1.2';
 const DEPOT_URL = "https://github.com/Pagelibre/pagelibre.github.io";
 const LIEN_SOUTIEN = "";
 const LOGO_SVG = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\">\n  <rect width=\"64\" height=\"64\" rx=\"14\" fill=\"#23405e\"/>\n  <path d=\"M18 10h20l11 11v31a3 3 0 0 1-3 3H18a3 3 0 0 1-3-3V13a3 3 0 0 1 3-3z\" fill=\"#ffffff\"/>\n  <path d=\"M38 10v8a3 3 0 0 0 3 3h8z\" fill=\"#c9d8e8\"/>\n  <rect x=\"20\" y=\"25\" width=\"12\" height=\"10\" rx=\"1.5\" fill=\"#f2b705\"/>\n  <path d=\"M35.5 27h8.5M35.5 32h8.5M20.5 40h23.5M20.5 45h23.5M20.5 50h15\" stroke=\"#23405e\" stroke-width=\"2.4\" stroke-linecap=\"round\"/>\n</svg>";
@@ -1064,7 +1065,9 @@ function assainirFiche(f) {
     }
 
     let ordreZ = 0; // ordre d'apparition dans Escher = ordre de superposition
-    function parcourirGroupe(r, transfo) {
+    // rotations : groupes tournés qui contiennent la forme, du plus intérieur au plus extérieur ({ cx, cy, a })
+    function parcourirGroupe(r, transfo, rotations) {
+      let rotationsEnfants = rotations || [];
       const enfants = enregistrements(dv, r.off, r.off + r.len);
       let transfoEnfants = transfo;
       enfants.forEach((e, i) => {
@@ -1073,13 +1076,24 @@ function assainirFiche(f) {
           const estGroupe = i === 0 && !!f.groupe;
           // la forme du groupe se place dans le repère du parent, les enfants dans celui du groupe
           f.rect = rectPage(f, estGroupe ? transfo : transfoEnfants);
+          f.rotations = estGroupe ? (rotations || []) : rotationsEnfants;
           f.ordre = ++ordreZ;
           if (estGroupe) {
             // forme du groupe lui-même : définit le repère des enfants
             const g = f.groupe;
             const gw = g[2] - g[0], gh = g[3] - g[1];
             if (f.rect && gw && gh) {
-              transfoEnfants = { ax: f.rect.x, ay: f.rect.y, gx: g[0], gy: g[1], sx: f.rect.w / gw, sy: f.rect.h / gh };
+              let rg = f.rect;
+              // groupe tourné : comme pour une forme, l'ancre est le cadre tourné entre 45° et 135° (ou 225°-315°) ;
+              // les enfants sont placés dans le cadre non tourné, puis tournent autour du centre du groupe
+              let a = f.props[4] ? (f.props[4].val | 0) / 65536 % 360 : 0;
+              if (a < 0) a += 360;
+              if (a) {
+                const cx = rg.x + rg.w / 2, cy = rg.y + rg.h / 2;
+                if ((a >= 45 && a < 135) || (a >= 225 && a < 315)) rg = { x: cx - rg.h / 2, y: cy - rg.w / 2, w: rg.h, h: rg.w };
+                rotationsEnfants = [{ cx, cy, a }, ...(rotations || [])];
+              }
+              transfoEnfants = { ax: rg.x, ay: rg.y, gx: g[0], gy: g[1], sx: rg.w / gw, sy: rg.h / gh };
             } else {
               transfoEnfants = null; // groupe racine : les enfants ont une ancre propre
             }
@@ -1095,7 +1109,7 @@ function assainirFiche(f) {
             formes.set(f.seq, f);
           }
         } else if (e.type === 0xF003) {
-          parcourirGroupe(e, transfoEnfants);
+          parcourirGroupe(e, transfoEnfants, rotationsEnfants);
         }
       });
     }
@@ -1292,8 +1306,10 @@ function assainirFiche(f) {
     const ids = new Map();
     for (const b of blocs) if (!ids.has(b.id)) ids.set(b.id, b);
     if (ids.has(0x0c)) s.taille = Math.round(ids.get(0x0c).val / EMU_PT * 2) / 2;
-    if (ids.has(0x02) || ids.has(0x37)) s.gras = true;
-    if (ids.has(0x03) || ids.has(0x38)) s.italique = true;
+    // 0x02 / 0x03 : gras, italique. 0x37 / 0x38 sont leurs équivalents pour les écritures complexes : 0x37 seul n'est jamais gras
+    // (4 cas sur 4 dans le PDF de référence, nov. 2026) ; 0x38 traité de même par analogie
+    if (ids.has(0x02)) s.gras = true;
+    if (ids.has(0x03)) s.italique = true;
     if (ids.has(0x1e) && (ids.get(0x1e).val & 0xff)) s.souligne = true;
     // 0x13 sans valeur : petites capitales (« application » en 12 pt gras s'affiche APPLICATION, plus petit que
     // des majuscules de 12 pt : vu sur un PDF de Publisher, nov. 2026) ; 0x12 et 0x3e valent 1036 : la langue (français)
@@ -1343,6 +1359,18 @@ function assainirFiche(f) {
       if (v & 2) s.interligne = Math.round((v & ~3) / 914400 * 1000) / 1000;
       else if (v & 1) s.interligneP = Math.round((v & ~3) / EMU_PT * 10) / 10;
     }
+    // 0x32 : taquets de tabulation du paragraphe (0x28 : liste ; 0 : position en EMU). Alignement : seul « à gauche » a été vu.
+    if (ids.has(0x32) && ids.get(0x32).varia) {
+      const liste = sousBlocs(dv, ids.get(0x32)).find(x => x.id === 0x28 && x.varia);
+      if (liste) {
+        const pos = [];
+        for (const e of sousBlocs(dv, liste)) {
+          const p0 = e.varia ? sousBlocs(dv, e).find(x => x.id === 0) : null;
+          if (p0 && p0.val > 0) pos.push(Math.round(p0.val / EMU_MM * 100) / 100);
+        }
+        if (pos.length) s.taquets = pos;
+      }
+    }
     if (ids.has(0x57) && ids.get(0x57).varia) {
       const l = sousBlocs(dv, ids.get(0x57));
       const c = l.find(x => x.id === 1);
@@ -1367,18 +1395,23 @@ function assainirFiche(f) {
     if (s.souligne) st.push('text-decoration:underline');
     if (s.petitesCapitales) st.push('font-variant:small-caps');
     if (s.couleur && s.couleur !== '#000000') st.push(`color:${s.couleur}`);
-    if (s.exposant) st.push('vertical-align:super;font-size:smaller');
-    if (s.indice) st.push('vertical-align:sub;font-size:smaller');
+    // exposants et indices : 0,65 × la taille du texte, décalés de 0,44 (haut) ou 0,15 (bas), mesuré sur le PDF
+    if (s.exposant || s.indice) st.push(`font-size:${Math.round((taille || 10) * 6.5) / 10}pt`, `vertical-align:${s.exposant ? 0.68 : -0.23}em`, 'line-height:0');
     return st.join(';');
   }
 
-  // hauteur de ligne naturelle des polices courantes (en fraction de la taille)
+  // hauteur de ligne naturelle des polices courantes (en fraction de la taille), pour les paragraphes à interligne réglé (0x34)
   const RATIO_POLICE = { 'calibri': 1.221, 'calibri light': 1.221, 'cambria': 1.172, 'arial': 1.149, 'arial black': 1.41, 'arial narrow': 1.149, 'times new roman': 1.15,
     'verdana': 1.215, 'tahoma': 1.207, 'georgia': 1.136, 'segoe ui': 1.33, 'comic sans ms': 1.394, 'trebuchet ms': 1.161, 'courier new': 1.133,
     'impact': 1.219, 'garamond': 1.12, 'century gothic': 1.226, 'book antiqua': 1.17, 'bookman old style': 1.17, 'franklin gothic medium': 1.134, 'candara': 1.221, 'corbel': 1.221, 'constantia': 1.221 };
+  // pas des lignes à interligne simple (en fraction de la taille), LU dans les .pub : la hauteur de texte des cellules (0x9) moins
+  // les marges donne 1,059 sur 700 cellules et 1,043 en gras sur 158 (confirmé par le PDF ; le navigateur donne 1,15).
+  // Aucune règle générale trouvée : Matura MT suit les mesures Windows (1,331), pas Times.
+  // N'ajouter ici que des polices mesurées ainsi ; les autres gardent la hauteur naturelle du navigateur.
+  const PAS_MESURE = { 'times new roman': [1.059, 1.043] };
   const ratioPolice = n => RATIO_POLICE[(n || '').toLowerCase()] || 1.15;
 
-  function cssPar(p, police, taille) {
+  function cssPar(p, police, taille, gras) {
     const st = [];
     if (p.align && p.align !== 'left') st.push(`text-align:${p.align}`);
     if (p.retraitG) st.push(`margin-left:${+p.retraitG.toFixed(2)}mm`);
@@ -1393,6 +1426,13 @@ function assainirFiche(f) {
       if (taille) st.push(`font-size:${taille}pt`);
     }
     if (p.interligneP) st.push(`line-height:${+p.interligneP.toFixed(1)}pt`);
+    // interligne simple : pas mesuré si on le connaît ; la ligne d'appui du paragraphe prend la police et la taille de son texte
+    if (!p.interligne && !p.interligneP) {
+      const pas = PAS_MESURE[(police || '').toLowerCase()];
+      if (pas) st.push(`line-height:${pas[gras ? 1 : 0]}`);
+      if (police) st.push(`font-family:'${police.replace(/'/g, '')}'`);
+      if (taille) st.push(`font-size:${taille}pt`);
+    }
     return st.join(';');
   }
 
@@ -1434,6 +1474,7 @@ function assainirFiche(f) {
         const ps = sPar(runA(Q.runsPar, Math.max(p, q === fin ? p : q)));
         let contenu = '';
         let tailleMax = 0;
+        let sDom = null, nDom = -1; // style du plus long morceau du paragraphe (et non du premier caractère, souvent une puce)
         let i = p;
         while (i < q) {
           const ri = runA(Q.runsCar, i);
@@ -1444,6 +1485,8 @@ function assainirFiche(f) {
           let morceau = t.slice(i, finRun)
             .replace(/[\u0000-\u0008\u000c\u000e-\u001f]/g, '');
           morceau = echapper(morceau).replace(/\u000b/g, '<br>');
+          const nm = morceau.replace(/s/g, '').length;
+          if (nm > nDom) { nDom = nm; sDom = s; }
           if (morceau) contenu += `<span style="${cssCar(s, base)}">${morceau}</span>`;
           i = finRun;
         }
@@ -1456,8 +1499,8 @@ function assainirFiche(f) {
           const car = c < 0x100 ? `<span style="font-family:Wingdings">${echapper(String.fromCharCode(c))}</span>` : echapper(String.fromCharCode(c));
           puce = `<span class="puce" contenteditable="false" style="${cssCar(sFin, base)}">${car} </span>`;
         }
-        const s0 = sCar(runA(Q.runsCar, p));
-        out += `<p style="${cssPar(ps, s0.police || base.police, s0.taille || base.taille)}">${puce}${contenu}</p>`;
+        const s0 = sDom || sCar(runA(Q.runsCar, p));
+        out += `<p${ps.taquets ? ` data-taquets="${ps.taquets.join(';')}"` : ''} style="${cssPar(ps, s0.police || base.police, s0.taille || base.taille, s0.gras)}">${puce}${contenu}</p>`;
         p = q + 1;
         if (q === fin) break;
       }
@@ -1555,6 +1598,21 @@ function assainirFiche(f) {
     const P = f => (f && f.props) || {};
     const val = (props, id, def) => (id in props ? props[id].val : def);
 
+    // couleur « calculée » d'Office (octet haut 0x10) : couleur de fond ou de contour de la forme, assombrie ou éclaircie
+    function couleurCalculee(v, props) {
+      if ((v >>> 24) !== 0x10) return couleurRGB(v, palette);
+      const base = couleurRGB(val(props, (v & 0xff) === 0xf0 ? 0x181 : 0x1c0, 0), palette) || '#000000';
+      const op = (v >> 8) & 0xf, k = ((v >> 16) & 0xff) / 255;
+      return '#' + [1, 3, 5].map(i => { const x = parseInt(base.slice(i, i + 2), 16); return Math.round(op === 1 ? x * k : op === 2 ? 255 - (255 - x) * k : x).toString(16).padStart(2, '0'); }).join('');
+    }
+    // ombre portée (0x23F : bit 1 = ombre, bit 17 = valeur définie ; décalage 0x205 / 0x206 en EMU ; couleur 0x201)
+    function ombrePortee(props) {
+      const b = val(props, 0x23f, 0);
+      if (!(b & 0x20000) || !(b & 2)) return null;
+      const type = val(props, 0x200, 0);
+      if (type !== 0) return null; // ombres en perspective, doubles… : non reprises
+      return { dx: mm(s32(val(props, 0x205, 25400))), dy: mm(s32(val(props, 0x206, 25400))), flou: 0, couleur: couleurCalculee(val(props, 0x201, 0x808080), props) || '#808080' };
+    }
     function remplissage(props) {
       const bool = val(props, 0x1bf, null);
       let plein = true;
@@ -1573,6 +1631,12 @@ function assainirFiche(f) {
       if (typeF === 3 || typeF === 2) {
         const pib = val(props, 0x186, 0);
         if (pib) { const ref = refImage(pib); if (ref) r.image = ref; }
+      }
+      // motif (hachures…) : petite image répétée, couleur de premier plan 0x181 et d'arrière-plan 0x183
+      if (typeF === 1) {
+        const pib = val(props, 0x186, 0);
+        const ref = pib ? refImage(pib) : null;
+        if (ref) { r.motif = ref; r.fondMotif = couleurRGB(val(props, 0x183, 0xffffff), palette) || '#ffffff'; }
       }
       return r;
     }
@@ -1593,17 +1657,63 @@ function assainirFiche(f) {
       return t;
     }
 
+    // Formes « à formules » (formes Office 2007 enregistrées en .pub : secteur, arc…) : les points peuvent renvoyer
+    // à des guides calculés (0x156, 8 octets chacun : opération + 3 paramètres) à partir des valeurs d'ajustement
+    // (0x147…0x150, angles en degrés × 65 536). Décodé sur les secteurs d'un diagramme circulaire (nov. 2026).
+    function guides(props, cadre) {
+      const adj = []; for (let k = 0; k < 10; k++) adj.push(s32(val(props, 0x147 + k, 0)));
+      const g = [];
+      const p = props[0x156] && props[0x156].data && props[0x156].data.length >= 6 && vue(props[0x156].data).getUint16(4, true) === 8 ? props[0x156]
+        : props[0x155] && props[0x155].data && props[0x155].data.length >= 6 && vue(props[0x155].data).getUint16(4, true) === 8 ? props[0x155] : null;
+      const ref = r => (r >= 0x140 && r <= 0x143 ? cadre[r - 0x140] : r >= 0x147 && r <= 0x150 ? adj[r - 0x147] : r >= 0x400 && r < 0x400 + g.length ? g[r - 0x400] : r === 0x4f7 || r === 0x4f8 || r === 0x4f9 ? 1 : 0);
+      if (p) {
+        const d = vue(p.data), n = d.getUint16(0, true);
+        const deg = a => a / 65536 * Math.PI / 180;
+        for (let i = 0; i < n && 6 + i * 8 + 8 <= p.data.length; i++) {
+          const o = 6 + i * 8, sgf = d.getUint16(o, true);
+          const prm = [1, 2, 3].map((k, j) => { const v = d.getUint16(o + k * 2, true); return sgf & (0x2000 << j) ? ref(v) : (v << 16 >> 16); });
+          const [a, b, c] = prm;
+          let r = 0;
+          switch (sgf & 0x1fff) {
+            case 0: r = a + b - c; break;
+            case 1: r = c ? a * b / c : 0; break;
+            case 2: r = (a + b) / 2; break;
+            case 3: r = Math.abs(a); break;
+            case 4: r = Math.min(a, b); break;
+            case 5: r = Math.max(a, b); break;
+            case 6: r = a > 0 ? b : c; break;
+            case 7: r = Math.sqrt(a * a + b * b + c * c); break;
+            case 8: r = Math.atan2(b, a) * 180 / Math.PI * 65536; break;
+            case 9: r = a * Math.sin(deg(b)); break;
+            case 10: r = a * Math.cos(deg(b)); break;
+            case 11: r = a * Math.cos(Math.atan2(c, b)); break;
+            case 12: r = a * Math.sin(Math.atan2(c, b)); break;
+            case 13: r = Math.sqrt(Math.max(0, a)); break;
+            case 14: r = a + b * 65536 - c * 65536; break;
+            case 15: r = c ? b * Math.sqrt(Math.max(0, 1 - (a / c) * (a / c))) : 0; break;
+            case 16: r = a * Math.tan(deg(b)); break;
+            default: r = 0;
+          }
+          g.push(r);
+        }
+      }
+      return g;
+    }
     function geometrie(props) {
       const v = props[0x145], s = props[0x146];
       if (!v || !v.data) return null;
       const d = vue(v.data);
       if (v.data.length < 6) return null;
       const n = d.getUint16(0, true), cb = d.getUint16(4, true);
+      const cadre = [val(props, 0x140, 0), val(props, 0x141, 0), val(props, 0x142, 21600), val(props, 0x143, 21600)];
+      const G = guides(props, cadre);
+      // coordonnée qui renvoie à un guide : bit de poids fort + numéro du guide
+      const coord = (x, bits) => { const u = bits === 32 ? x >>> 0 : x & 0xffff, haut = bits === 32 ? 0x80000000 : 0x8000; if (u & haut) { const k = u & (haut - 1); if (k < G.length) return Math.round(G[k]); } return x; };
       const pts = [];
       for (let i = 0; i < n; i++) {
         const o = 6 + i * (cb === 0xfff0 ? 4 : cb);
-        if (cb === 0xfff0 || cb === 4) { if (o + 4 > v.data.length) break; pts.push([d.getInt16(o, true), d.getInt16(o + 2, true)]); }
-        else { if (o + 8 > v.data.length) break; pts.push([d.getInt32(o, true), d.getInt32(o + 4, true)]); }
+        if (cb === 0xfff0 || cb === 4) { if (o + 4 > v.data.length) break; pts.push([coord(d.getInt16(o, true), 16), coord(d.getInt16(o + 2, true), 16)]); }
+        else { if (o + 8 > v.data.length) break; pts.push([coord(d.getInt32(o, true), 32), coord(d.getInt32(o + 4, true), 32)]); }
       }
       const segs = [];
       if (s && s.data && s.data.length >= 6) {
@@ -1611,9 +1721,7 @@ function assainirFiche(f) {
         const ns = sd.getUint16(0, true);
         for (let i = 0; i < ns && 6 + i * 2 + 2 <= s.data.length; i++) segs.push(sd.getUint16(6 + i * 2, true));
       }
-      const gauche = val(props, 0x140, 0), haut = val(props, 0x141, 0);
-      const droite = val(props, 0x142, 21600), bas = val(props, 0x143, 21600);
-      return { pts, segs, cadre: [gauche, haut, droite, bas] };
+      return { pts, segs, cadre };
     }
 
     let compteur = 0;
@@ -1634,10 +1742,22 @@ function assainirFiche(f) {
         [w, h] = [h, w];
         x = cx - w / 2; y = cy - h / 2;
       }
+      // rotation des groupes : le centre tourne autour de celui du groupe, et la forme tourne d'autant
+      let rotGroupe = 0;
+      for (const g of f.rotations || []) {
+        const c = Math.cos(g.a * Math.PI / 180), s = Math.sin(g.a * Math.PI / 180);
+        const dx = x + w / 2 - g.cx, dy = y + h / 2 - g.cy;
+        x = g.cx + dx * c - dy * s - w / 2; y = g.cy + dx * s + dy * c - h / 2;
+        rotGroupe += g.a;
+      }
       const o = { id: nouvelId(), x: mm(x), y: mm(y), w: mm(w), h: mm(h), _z: f.ordre || 0 };
       if (rot) o.rot = Math.round(rot * 100) / 100;
       if (f.flags & 0x40) o.miroirH = true;
       if (f.flags & 0x80) o.miroirV = true;
+      // Office tourne la forme puis la retourne ; l'affichage retourne puis tourne : un retournement dans un seul sens
+      // inverse donc le sens de rotation (vérifié sur un secteur de diagramme circulaire, nov. 2026)
+      if (o.rot && !o.miroirH !== !o.miroirV) o.rot = Math.round((360 - rot) % 360 * 100) / 100;
+      if (rotGroupe) { const r2 = Math.round(((o.rot || 0) + rotGroupe) % 360 * 100) / 100; if (r2) o.rot = r2; else delete o.rot; }
       void ch;
       return o;
     }
@@ -1676,7 +1796,7 @@ function assainirFiche(f) {
           defCells = sousBlocs(dv, cb.get(0x2)).map(e => {
             const m = carte(sousBlocs(dv, e));
             const g = k => (m.has(k) ? m.get(k).val : 0);
-            return { r1: g(1), r2: g(2), c1: g(3), c2: g(4), marges: [0xa, 0xb, 0xc, 0xd].map(k => (m.has(k) ? mm(m.get(k).val) : 1)), sens: g(6) };
+            return { r1: g(1), r2: g(2), c1: g(3), c2: g(4), marges: [0xa, 0xb, 0xc, 0xd].map(k => (m.has(k) ? mm(m.get(k).val) : 1)), sens: g(6), vertical: g(7) };
           });
         }
       }
@@ -1704,6 +1824,9 @@ function assainirFiche(f) {
       const fondT = tinfo.fond ? remplissage(tinfo.fond) : null;
       const cellules = defCells.map((c, i) => {
         const cel = { l: c.r1, c: c.c1, nl: c.r2 - c.r1 + 1, nc: c.c2 - c.c1 + 1, html: textes[i] || '<p><br></p>' };
+        // 0x7 : alignement vertical de la cellule (1 = milieu ; 2 = bas, par analogie avec les zones de texte)
+        if (c.vertical === 1) cel.vertical = 'milieu'; else if (c.vertical === 2) cel.vertical = 'bas';
+        if (c.marges && defCells[0] && c.marges.join() !== defCells[0].marges.join()) cel.marges = c.marges;
         if (c.sens === 2) cel.sensTexte = 'haut-bas';
         else if (c.sens === 1) cel.sensTexte = 'bas-haut';
         const pc = tinfo.cellules.get(i);
@@ -1730,6 +1853,7 @@ function assainirFiche(f) {
         }
       }
       o.type = 'tableau';
+      o.cesure = true;
       o.tableau = { cols, lignes, cellules, marges: (defCells[0] && defCells[0].marges) || [1, 1, 1, 1] };
       if (fondT) o.tableau.fond = fondT.couleur;
       return o;
@@ -1788,7 +1912,8 @@ function assainirFiche(f) {
 
       const pib = val(props, 0x104, 0);
       const idTexte = ch.has(0x27) ? ch.get(0x27).val : (0x80 in props ? props[0x80].val : null);
-      const forme = FORMES[f.stype] || 'rect';
+      // forme inconnue mais décrite par ses points (formes Office 2007 : secteur…) : tracée comme forme libre
+      const forme = FORMES[f.stype] || (props[0x145] && props[0x146] ? 'libre' : 'rect');
 
       if (pib) {
         o.type = 'image';
@@ -1800,6 +1925,10 @@ function assainirFiche(f) {
         if (haut || bas || gauche || droite) o.rognage = [haut, droite, bas, gauche].map(v => Math.round(v * 10000) / 10000);
         const tr = trait(props, false);
         if (tr) o.trait = tr;
+        // fond de l'image (équations sur fond blanc) : seulement s'il est demandé explicitement
+        if ((val(props, 0x1bf, 0) & 0x100010) === 0x100010) { const fi = remplissage(props); if (fi && fi.couleur) o.fond = { couleur: fi.couleur }; }
+        const omI = ombrePortee(props);
+        if (omI) o.ombre = omI;
         sortie.push(o);
         return;
       }
@@ -1824,9 +1953,14 @@ function assainirFiche(f) {
       if (fr && !(f.stype === 202 && val(props, 0x1bf, null) == null)) o.fond = fr;
       const tr = trait(props, f.stype !== 202);
       if (tr) o.trait = tr;
+      const om = ombrePortee(props);
+      if (om) o.ombre = om;
       if (o.type === 'texte') {
         o.html = texteHistoire(idTexte);
         o._histoire = idTexte;
+        // l'application d'origine coupe les mots par défaut (27 coupures sur le PDF d'une fiche de 32 pages, nov. 2026 ;
+        // aucun réglage par zone trouvé dans le fichier) : le bouton Césure permet de la retirer
+        o.cesure = true;
         o.marges = marges(props);
         const anc = val(props, 0x87, 0);
         o.vertical = anc === 1 || anc === 4 ? 'milieu' : anc === 2 || anc === 5 ? 'bas' : 'haut';
@@ -1882,13 +2016,17 @@ function assainirFiche(f) {
     while (pages.length > 1 && !pages[pages.length - 1].items.length) pages.pop();
     if (!pages.length) pages.push({ id: 'p1', maitre: null, items: [] });
 
+    // tabulation par défaut du document (bloc document, 0x15, en EMU) : environ 10 mm dans les fiches françaises
+    const tabDoc = doc.has(0x15) ? doc.get(0x15).val : null;
+    const tabulation = tabDoc > 36000 && tabDoc < 3600000 ? Math.round(tabDoc / EMU_MM * 100) / 100 : null;
+
     // titre
     let titre = options.nom || 'Fiche';
     titre = titre.replace(/\.pub$/i, '');
 
     return {
       format: 'pagelibre', version: 1, titre,
-      page: { w: mm(pageW), h: mm(pageH) },
+      page: Object.assign({ w: mm(pageW), h: mm(pageH) }, tabulation ? { tabulation } : {}),
       palette, images, maitres, pages,
       avertissements: [...new Set(avertissements)]
     };
@@ -2021,13 +2159,55 @@ function assainirFiche(f) {
       for (i = 1; i < g.pts.length; i++) d += 'L' + pt(i);
       return d;
     }
+    const P = k => g.pts[Math.min(k, g.pts.length - 1)];
+    const ecran = q => f2((q[0] - gl) * sx) + ' ' + f2((q[1] - gt) * sy);
+    let courant = null; // dernier point tracé (coordonnées de la forme)
+    // arc d'ellipse (cadre l,t – r,b) du point a au point b : sens inverse des aiguilles (ArcTo, Arc) ou sens horaire
+    const arc = (c1, c2, a, b, horaire, relie) => {
+      const cx = (c1[0] + c2[0]) / 2, cy = (c1[1] + c2[1]) / 2, rx = Math.abs(c2[0] - c1[0]) / 2 || 1, ry = Math.abs(c2[1] - c1[1]) / 2 || 1;
+      const ang = q => Math.atan2((q[1] - cy) / ry, (q[0] - cx) / rx);
+      const a0 = ang(a), a1 = ang(b), sur = t => [cx + rx * Math.cos(t), cy + ry * Math.sin(t)];
+      let balayage = horaire ? a1 - a0 : a0 - a1;
+      while (balayage <= 1e-9) balayage += 2 * Math.PI;
+      const debut = sur(a0), fin = sur(a1);
+      d += (relie && courant ? 'L' : 'M') + ecran(debut);
+      const A = (q, grand) => `A${f2(rx * sx)} ${f2(ry * sy)} 0 ${grand} ${horaire ? 1 : 0} ${ecran(q)}`;
+      if (balayage > 2 * Math.PI - 1e-6) d += A(sur(a0 + (horaire ? Math.PI : -Math.PI)), 0) + A(fin, 0); // ellipse complète
+      else d += A(fin, balayage > Math.PI ? 1 : 0);
+      courant = fin;
+    };
     for (const s of g.segs) {
       const t = s >> 13, n = s & 0x1fff;
-      if (t === 2) { d += 'M' + pt(i++); }
-      else if (t === 0) { for (let k = 0; k < (n || 1); k++) d += 'L' + pt(i++); }
-      else if (t === 1) { for (let k = 0; k < (n || 1); k++) { d += 'C' + pt(i) + ' ' + pt(i + 1) + ' ' + pt(i + 2); i += 3; } }
+      if (t === 2) { courant = P(i); d += 'M' + pt(i++); }
+      else if (t === 0) { for (let k = 0; k < (n || 1); k++) { courant = P(i); d += 'L' + pt(i++); } }
+      else if (t === 1) { for (let k = 0; k < (n || 1); k++) { d += 'C' + pt(i) + ' ' + pt(i + 1) + ' ' + pt(i + 2); courant = P(i + 2); i += 3; } }
       else if (t === 3) d += 'Z';
       else if (t === 4) break;
+      else if (t === 5) {
+        // commandes spéciales : arcs, quarts d'ellipse, courbes quadratiques ; « sans remplissage »… n'ont pas de point
+        const code = (s >> 8) & 0x1f, m = s & 0xff;
+        if (code >= 3 && code <= 6) {
+          for (let k = 0, nb = Math.max(1, Math.floor(m / 4)); k < nb && i + 3 < g.pts.length; k++) { arc(P(i), P(i + 1), P(i + 2), P(i + 3), code === 5 || code === 6, code === 3 || code === 5); i += 4; }
+        } else if (code === 1 || code === 2) {
+          for (let k = 0; k < Math.max(1, Math.floor(m / 3)); k++) {
+            const c = P(i), r = P(i + 1), an = P(i + 2); i += 3;
+            const deb = an[0] / 65536 * Math.PI / 180, bal = an[1] / 65536 * Math.PI / 180;
+            const q = t2 => [c[0] + r[0] * Math.cos(t2), c[1] + r[1] * Math.sin(t2)];
+            arc([c[0] - r[0], c[1] - r[1]], [c[0] + r[0], c[1] + r[1]], q(deb), q(deb + bal), bal > 0, code === 1);
+          }
+        } else if (code === 7 || code === 8) {
+          let enX = code === 7;
+          for (let k = 0; k < Math.max(1, m); k++) {
+            const q = P(i++), o0 = courant || q, kk = 0.5523;
+            const c1 = enX ? [o0[0] + (q[0] - o0[0]) * kk, o0[1]] : [o0[0], o0[1] + (q[1] - o0[1]) * kk];
+            const c2 = enX ? [q[0], q[1] - (q[1] - o0[1]) * kk] : [q[0] - (q[0] - o0[0]) * kk, q[1]];
+            d += 'C' + ecran(c1) + ' ' + ecran(c2) + ' ' + ecran(q);
+            courant = q; enX = !enX;
+          }
+        } else if (code === 9) {
+          for (let k = 0; k < Math.max(1, Math.floor(m / 2)); k++) { d += 'Q' + pt(i) + ' ' + pt(i + 1); courant = P(i + 1); i += 2; }
+        }
+      }
     }
     return d || 'M0 0';
   }
@@ -2057,9 +2237,46 @@ function assainirFiche(f) {
     }
   }
 
+  // motif BMP 8 × 8 à 1 bit par point : 64 booléens (vrai = point de premier plan, clair dans l'image), ou null si autre format
+  const cacheMotifs = new Map();
+  function pixelsMotif(url) {
+    if (cacheMotifs.has(url)) return cacheMotifs.get(url);
+    let r = null;
+    try {
+      const m = /^data:image\/bmp;base64,(.*)$/.exec(url);
+      if (m) {
+        const b = Uint8Array.from(atob(m[1]), c => c.charCodeAt(0)), dv = new DataView(b.buffer);
+        const off = dv.getUint32(10, true), w = dv.getInt32(18, true), h = dv.getInt32(22, true), bpp = dv.getUint16(28, true), tete = dv.getUint32(14, true);
+        if (bpp === 1 && w === 8 && Math.abs(h) === 8) {
+          const pal = [0, 1].map(i => { const q = 14 + tete + i * 4; return b[q] + b[q + 1] + b[q + 2]; });
+          r = [];
+          for (let y = 0; y < 8; y++) {
+            const ligne = b[off + (h > 0 ? 7 - y : y) * 4];
+            for (let x = 0; x < 8; x++) r.push(pal[(ligne >> (7 - x)) & 1] >= 384);
+          }
+        }
+      }
+    } catch (e) { r = null; }
+    cacheMotifs.set(url, r);
+    return r;
+  }
+
   function appliquerFond(e, f, defs, fiche, o) {
     if (!f) { e.setAttribute('fill', 'none'); return; }
-    if (f.image && fiche.images[f.image]) {
+    if (f.motif && fiche.images[f.motif]) {
+      // motif répété (hachures) : carreau de 8 × 8 points écran ; les points clairs du motif prennent la couleur
+      // de premier plan, les sombres celle d'arrière-plan (comme dans l'application d'origine)
+      const px = pixelsMotif(fiche.images[f.motif]);
+      const id = 'mf' + (++compteurDef), u = 25.4 / 96;
+      const p = el('pattern', { id, patternUnits: 'userSpaceOnUse', width: f2(8 * u), height: f2(8 * u) }, defs);
+      el('rect', { x: 0, y: 0, width: f2(8 * u), height: f2(8 * u), fill: f.fondMotif || '#ffffff' }, p);
+      if (px) {
+        let d = '';
+        for (let y = 0; y < 8; y++) for (let x = 0; x < 8; x++) if (px[y * 8 + x]) d += `M${f2(x * u)} ${f2(y * u)}h${f2(u)}v${f2(u)}h${f2(-u)}z`;
+        if (d) el('path', { d, fill: f.couleur || '#000000' }, p);
+      } else el('image', { href: fiche.images[f.motif], x: 0, y: 0, width: f2(8 * u), height: f2(8 * u), preserveAspectRatio: 'none' }, p);
+      e.setAttribute('fill', `url(#${id})`);
+    } else if (f.image && fiche.images[f.image]) {
       const id = 'pf' + (++compteurDef);
       const p = el('pattern', { id, patternUnits: 'objectBoundingBox', width: 1, height: 1, patternContentUnits: 'objectBoundingBox' }, defs);
       el('image', { href: fiche.images[f.image], x: 0, y: 0, width: 1, height: 1, preserveAspectRatio: 'none' }, p);
@@ -2138,7 +2355,7 @@ function assainirFiche(f) {
     return b ? `${Math.max(b.e * PT_MM, 0.1).toFixed(2)}mm solid ${b.c}` : '';
   }
 
-  function tableau(o, d) {
+  function tableau(o, d, fiche) {
     const T = o.tableau;
     const t = document.createElement('table');
     t.className = 'tab';
@@ -2163,7 +2380,16 @@ function assainirFiche(f) {
           td.dataset.cellule = i;
           if (c.nl > 1) td.rowSpan = c.nl;
           if (c.nc > 1) td.colSpan = c.nc;
-          td.style.padding = `${m[1]}mm ${m[2]}mm ${m[3]}mm ${m[0]}mm`;
+          // les bordures sont dessinées à cheval sur le bord de la cellule, sans réduire la place du texte ; le navigateur, lui,
+          // en loge la moitié dans la cellule (la plus épaisse des deux voisines) : on retire cette moitié des marges
+          const mc = c.marges || m;
+          const voisine = (l, k2) => (l >= 0 && l < nl && k2 >= 0 && k2 < nc && occupe[l][k2] != null ? (T.cellules[occupe[l][k2]].bords || {}) : {});
+          const demi = (x, y) => Math.max(...[x, y].map(q => (q ? Math.max(q.e * PT_MM, 0.1) / 2 : 0)));
+          const bc = c.bords || {};
+          const pad = [mc[1] - demi(bc.h, voisine(c.l - 1, c.c).b), mc[2] - demi(bc.d, voisine(c.l, c.c + c.nc).g),
+            mc[3] - demi(bc.b, voisine(c.l + c.nl, c.c).h), mc[0] - demi(bc.g, voisine(c.l, c.c - 1).d)].map(v => Math.max(0, v).toFixed(2));
+          // 0,3 mm de tolérance à droite : le navigateur arrondit les largeurs de colonne au point écran
+          td.style.padding = `${pad[0]}mm ${Math.max(0, pad[1] - 0.3).toFixed(2)}mm ${pad[2]}mm ${pad[3]}mm`;
           const fond = c.fond || T.fond;
           if (fond) td.style.backgroundColor = fond;
           if (c.diagonale) {
@@ -2185,13 +2411,15 @@ function assainirFiche(f) {
             td.classList.add('a-diagonale');
           }
           const ct = contenuTexte(c.html);
+          if (fiche && fiche.page.tabulation) ct.style.tabSize = fiche.page.tabulation + 'mm';
+          if (o.cesure) { cesurer(ct); ct.classList.add('cesure'); }
           if (c.diagonale) ct.classList.add('diag-bas');
           if (c.sensTexte) {
             // flux orthogonal : sans hauteur imposée, le navigateur prend celle de la fenêtre
             ct.classList.add('sens-' + c.sensTexte);
             let hc = 0;
             for (let r2 = c.l; r2 < Math.min(c.l + c.nl, nl); r2++) hc += T.lignes[r2];
-            ct.style.height = Math.max(hc - m[1] - m[3], 1) + 'mm';
+            ct.style.height = Math.max(hc - mc[1] - mc[3], 1) + 'mm';
           }
           td.appendChild(ct);
           tr.appendChild(td);
@@ -2208,11 +2436,13 @@ function assainirFiche(f) {
 
   function wordart(o, d, fiche) {
     const W = o.wordart;
+    // « Copperplate Gothic Bold » : le navigateur connaît la famille « Copperplate Gothic » en gras
+    const fg = /^(.+) Bold$/i.exec(W.police || '');
     const s = el('svg', { class: 'svg-wordart', viewBox: `0 0 ${f2(o.w)} ${f2(o.h)}`, preserveAspectRatio: 'none' });
     const defs = el('defs', {}, s);
     const t = el('text', {
-      x: 0, y: f2(o.h * 0.8), 'font-size': f2(o.h * 0.95), 'font-family': W.police,
-      'font-weight': W.gras ? 'bold' : null, 'font-style': W.italique ? 'italic' : null,
+      x: 0, y: f2(o.h * 0.8), 'font-size': f2(o.h * 0.95), 'font-family': fg ? `'${W.police}', '${fg[1]}'` : W.police,
+      'font-weight': W.gras || fg ? 'bold' : null, 'font-style': W.italique ? 'italic' : null,
       textLength: f2(o.w), lengthAdjust: 'spacingAndGlyphs'
     }, s);
     t.textContent = W.texte;
@@ -2364,7 +2594,8 @@ function assainirFiche(f) {
     const noeuds = [];
     for (let t = tw.nextNode(); t; t = tw.nextNode()) if (!t.parentElement.closest('.puce,.champ-page,.lettrine')) noeuds.push(t);
     for (const t of noeuds) {
-      t.nodeValue = t.nodeValue.replace(/[A-Za-zÀ-ÖØ-öø-ÿœŒæÆ]{7,}/g, m => {
+      t.nodeValue = t.nodeValue.replace(/[A-Za-zÀ-ÖØ-öø-ÿœŒæÆ-]{6,}/g, m => {
+        if (m.includes('-')) return m; // mot composé : il se coupe déjà à son trait d'union
         const p = coupuresMot(m);
         let r = '', k = 0;
         for (const c of p) { r += m.slice(k, c) + '­'; k = c; }
@@ -2516,6 +2747,7 @@ function assainirFiche(f) {
       case 'image': {
         const clip = document.createElement('div');
         clip.className = 'clip';
+        if (o.fond && o.fond.couleur) clip.style.backgroundColor = o.fond.couleur;
         const src = o.image && fiche.images[o.image];
         if (src && /^data:image\/x-(emf|wmf)/.test(src)) {
           clip.classList.add('manquante');
@@ -2569,7 +2801,8 @@ function assainirFiche(f) {
             ct.style.height = '100%';
             cadre.classList.add('colonnes');
           }
-          if (o.tabulation) ct.style.tabSize = (o.tabulation / z) + 'mm';
+          const pasTab = o.tabulation || fiche.page.tabulation; // réglée sur la zone, sinon celle du document
+          if (pasTab) ct.style.tabSize = (pasTab / z) + 'mm';
           const deux = [];
           for (const fl of flottantsHabillage(o, ctx && ctx.obstacles, z, deux).reverse()) ct.insertBefore(fl, ct.firstChild);
           if (deux.length) ct.dataset.exclusions = JSON.stringify(deux);
@@ -2592,7 +2825,7 @@ function assainirFiche(f) {
         break;
       }
       case 'ligne': d.appendChild(svgForme(o, fiche, false)); break;
-      case 'tableau': tableau(o, d); if (o.biseau) d.appendChild(biseauRect(o)); break;
+      case 'tableau': tableau(o, d, fiche); if (o.biseau) d.appendChild(biseauRect(o)); break;
       case 'wordart': wordart(o, d, fiche); break;
     }
     remplirChamps(d, ctx);
@@ -3004,6 +3237,14 @@ function assainirFiche(f) {
     return t;
   })();
   const estSymbol = nom => /^symbol$/i.test(nom || '');
+  // jeu de caractères d'une police WMF (lfCharSet) → page de codes Windows
+  const PAGES_CODES = { 161: 'windows-1253', 162: 'windows-1254', 163: 'windows-1258', 177: 'windows-1255', 178: 'windows-1256', 186: 'windows-1257', 204: 'windows-1251', 222: 'windows-874', 238: 'windows-1250' };
+  const decodeurs = {};
+  function decodeur(jeu) {
+    const page = PAGES_CODES[jeu] || 'windows-1252';
+    if (!decodeurs[page]) { try { decodeurs[page] = new TextDecoder(page); } catch (e) { decodeurs[page] = new TextDecoder('windows-1252'); } }
+    return decodeurs[page];
+  }
   function versUnicodeSymbol(octets) { let s = ''; for (const b of octets) s += SYMBOL[b] || String.fromCharCode(b); return s; }
 
   /* ---------- WMF ---------- */
@@ -3036,7 +3277,6 @@ function assainirFiche(f) {
     const objets = [];
     const pile = [];
     const ajouter = ob => { let i = 0; while (objets[i]) i++; objets[i] = ob; };
-    const dec = typeof TextDecoder !== 'undefined' ? new TextDecoder('windows-1252') : null;
     let St = S;
     function appliquer() {
       const sx = c.width / (St.wex || 1), sy = c.height / (St.wey || 1);
@@ -3071,7 +3311,7 @@ function assainirFiche(f) {
         case 0x02FB: {
           let nom = '';
           for (let i = 0; i < 32 && p + 18 + i < o + taille; i++) { const ch = dv.getUint8(p + 18 + i); if (!ch) break; nom += String.fromCharCode(ch); }
-          ajouter({ t: 'f', hauteur: i16(0) || 12, angle: i16(4), gras: i16(8) >= 600, italique: !!dv.getUint8(p + 10), nom: nom || 'Arial' });
+          ajouter({ t: 'f', hauteur: i16(0) || 12, largeur: i16(2), angle: i16(4), gras: i16(8) >= 600, italique: !!dv.getUint8(p + 10), jeu: dv.getUint8(p + 13), nom: nom || 'Arial' });
           break;
         }
         case 0x00F7: case 0x01F9: case 0x0142: case 0x06FF: ajouter({ t: 'x' }); break;
@@ -3115,8 +3355,9 @@ function assainirFiche(f) {
           if (f === 0x0521) { n = i16(0); so = p + 2; const pad = n + (n & 1); y = i16(2 + pad); x = i16(4 + pad); }
           else { y = i16(0); x = i16(2); n = i16(4); const opt = dv.getUint16(p + 6, true); so = p + 8 + (opt & 6 ? 8 : 0); }
           const octets = u8.subarray(so, so + n);
-          const symbole = estSymbol(St.police.nom);
-          const s = symbole ? versUnicodeSymbol(octets) : dec ? dec.decode(octets) : String.fromCharCode(...octets);
+          // jeu de caractères de la police : 2 = Symbol, 161 = grec (σ s'écrit 0xF3), 204 = cyrillique…
+          const symbole = estSymbol(St.police.nom) || St.police.jeu === 2;
+          const s = symbole ? versUnicodeSymbol(octets) : decodeur(St.police.jeu).decode(octets);
           // espacement de chaque caractère (ExtTextOut), en unités logiques, s'il est fourni
           const finTexte = so + n + (n & 1);
           const ecarts = f === 0x0A32 && finTexte + n * 2 <= o + taille ? Array.from({ length: n }, (_, i) => dv.getInt16(finTexte + i * 2, true)) : null;
@@ -3134,6 +3375,12 @@ function assainirFiche(f) {
           const a = St.alignTexte;
           ctx.textAlign = (a & 6) === 6 ? 'center' : (a & 2) ? 'right' : 'left';
           ctx.textBaseline = (a & 24) === 24 ? 'alphabetic' : (a & 8) ? 'bottom' : 'top';
+          // largeur imposée (grandes parenthèses des équations) : largeur moyenne demandée / largeur moyenne de la police
+          if (St.police.largeur) {
+            const moy = symbole ? 0.6 : /times/i.test(St.police.nom) ? 0.401 : 0.45;
+            const kx = Math.abs(St.police.largeur * m.a) / (moy * hpx);
+            if (kx > 0.2 && kx < 5) ctx.scale(kx, 1);
+          }
           if (ecarts && ctx.textAlign === 'left' && s.length === n && n > 1) {
             let cx = 0;
             for (let i = 0; i < n; i++) { ctx.fillText(s[i], cx, 0); cx += ecarts[i] * Math.abs(m.a); }
@@ -3871,6 +4118,8 @@ function dessinerVignettes() {
     const m = document.createElement('div');
     m.className = 'mini';
     v.append(n, m);
+    v.setAttribute('role', 'button'); v.tabIndex = 0; v.setAttribute('aria-label', v.title);
+    v.addEventListener('keydown', ev => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); ev.stopPropagation(); allerPage(i); } });
     l.appendChild(v);
     remplirVignette(i, m);
   });
@@ -7931,6 +8180,16 @@ function nouveauDepuisModele(cle) {
    Affichées une fois à la première ouverture d'une nouvelle version, et dans Fichier › Aide.
    Le numéro de version (VERSION_NOM) vient de depot/package.json : le changer à chaque publication. */
 const NOUVEAUTES = [
+  {
+    version: '1.1.2', date: '23/11/2026',
+    points: [
+      'Volet Pages : les aperçus ne sont plus rognés à droite.',
+      'Fichiers .pub : diagrammes circulaires, hachures, ombres, groupes tournés et fonds d’image repris.',
+      'Fichiers .pub : tabulations, coupure des mots, interligne de Times New Roman, exposants et gras conformes à l’original ; le texte ne chevauche plus les tableaux.',
+      'Fichiers .pub : tableaux à la bonne hauteur, avec l’alignement vertical et les marges de chaque cellule.',
+      'Équations : lettres grecques et grandes parenthèses correctes.'
+    ]
+  },
   {
     version: '1.1.1', date: '23/11/2026',
     points: [

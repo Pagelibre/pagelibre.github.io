@@ -3,5 +3,6 @@ node_modules/
 *.log
 # documents personnels de test : jamais dans le dépôt
 *.pub
+*.pdf
 *.pagelibre
 *-CFA661*

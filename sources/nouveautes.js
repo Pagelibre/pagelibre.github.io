@@ -3,6 +3,16 @@
    Le numéro de version (VERSION_NOM) vient de depot/package.json : le changer à chaque publication. */
 const NOUVEAUTES = [
   {
+    version: '1.1.2', date: '23/11/2026',
+    points: [
+      'Volet Pages : les aperçus ne sont plus rognés à droite.',
+      'Fichiers .pub : diagrammes circulaires, hachures, ombres, groupes tournés et fonds d’image repris.',
+      'Fichiers .pub : tabulations, coupure des mots, interligne de Times New Roman, exposants et gras conformes à l’original ; le texte ne chevauche plus les tableaux.',
+      'Fichiers .pub : tableaux à la bonne hauteur, avec l’alignement vertical et les marges de chaque cellule.',
+      'Équations : lettres grecques et grandes parenthèses correctes.'
+    ]
+  },
+  {
     version: '1.1.1', date: '23/11/2026',
     points: [
       'Fichiers .pub : les traits horizontaux et verticaux s\'affichent (pointillés à compléter, axes, graduations, moustaches).',

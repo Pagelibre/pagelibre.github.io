@@ -302,7 +302,9 @@
     }
 
     let ordreZ = 0; // ordre d'apparition dans Escher = ordre de superposition
-    function parcourirGroupe(r, transfo) {
+    // rotations : groupes tournés qui contiennent la forme, du plus intérieur au plus extérieur ({ cx, cy, a })
+    function parcourirGroupe(r, transfo, rotations) {
+      let rotationsEnfants = rotations || [];
       const enfants = enregistrements(dv, r.off, r.off + r.len);
       let transfoEnfants = transfo;
       enfants.forEach((e, i) => {
@@ -311,13 +313,24 @@
           const estGroupe = i === 0 && !!f.groupe;
           // la forme du groupe se place dans le repère du parent, les enfants dans celui du groupe
           f.rect = rectPage(f, estGroupe ? transfo : transfoEnfants);
+          f.rotations = estGroupe ? (rotations || []) : rotationsEnfants;
           f.ordre = ++ordreZ;
           if (estGroupe) {
             // forme du groupe lui-même : définit le repère des enfants
             const g = f.groupe;
             const gw = g[2] - g[0], gh = g[3] - g[1];
             if (f.rect && gw && gh) {
-              transfoEnfants = { ax: f.rect.x, ay: f.rect.y, gx: g[0], gy: g[1], sx: f.rect.w / gw, sy: f.rect.h / gh };
+              let rg = f.rect;
+              // groupe tourné : comme pour une forme, l'ancre est le cadre tourné entre 45° et 135° (ou 225°-315°) ;
+              // les enfants sont placés dans le cadre non tourné, puis tournent autour du centre du groupe
+              let a = f.props[4] ? (f.props[4].val | 0) / 65536 % 360 : 0;
+              if (a < 0) a += 360;
+              if (a) {
+                const cx = rg.x + rg.w / 2, cy = rg.y + rg.h / 2;
+                if ((a >= 45 && a < 135) || (a >= 225 && a < 315)) rg = { x: cx - rg.h / 2, y: cy - rg.w / 2, w: rg.h, h: rg.w };
+                rotationsEnfants = [{ cx, cy, a }, ...(rotations || [])];
+              }
+              transfoEnfants = { ax: rg.x, ay: rg.y, gx: g[0], gy: g[1], sx: rg.w / gw, sy: rg.h / gh };
             } else {
               transfoEnfants = null; // groupe racine : les enfants ont une ancre propre
             }
@@ -333,7 +346,7 @@
             formes.set(f.seq, f);
           }
         } else if (e.type === 0xF003) {
-          parcourirGroupe(e, transfoEnfants);
+          parcourirGroupe(e, transfoEnfants, rotationsEnfants);
         }
       });
     }
@@ -530,8 +543,10 @@
     const ids = new Map();
     for (const b of blocs) if (!ids.has(b.id)) ids.set(b.id, b);
     if (ids.has(0x0c)) s.taille = Math.round(ids.get(0x0c).val / EMU_PT * 2) / 2;
-    if (ids.has(0x02) || ids.has(0x37)) s.gras = true;
-    if (ids.has(0x03) || ids.has(0x38)) s.italique = true;
+    // 0x02 / 0x03 : gras, italique. 0x37 / 0x38 sont leurs équivalents pour les écritures complexes : 0x37 seul n'est jamais gras
+    // (4 cas sur 4 dans le PDF de référence, nov. 2026) ; 0x38 traité de même par analogie
+    if (ids.has(0x02)) s.gras = true;
+    if (ids.has(0x03)) s.italique = true;
     if (ids.has(0x1e) && (ids.get(0x1e).val & 0xff)) s.souligne = true;
     // 0x13 sans valeur : petites capitales (« application » en 12 pt gras s'affiche APPLICATION, plus petit que
     // des majuscules de 12 pt : vu sur un PDF de Publisher, nov. 2026) ; 0x12 et 0x3e valent 1036 : la langue (français)
@@ -581,6 +596,18 @@
       if (v & 2) s.interligne = Math.round((v & ~3) / 914400 * 1000) / 1000;
       else if (v & 1) s.interligneP = Math.round((v & ~3) / EMU_PT * 10) / 10;
     }
+    // 0x32 : taquets de tabulation du paragraphe (0x28 : liste ; 0 : position en EMU). Alignement : seul « à gauche » a été vu.
+    if (ids.has(0x32) && ids.get(0x32).varia) {
+      const liste = sousBlocs(dv, ids.get(0x32)).find(x => x.id === 0x28 && x.varia);
+      if (liste) {
+        const pos = [];
+        for (const e of sousBlocs(dv, liste)) {
+          const p0 = e.varia ? sousBlocs(dv, e).find(x => x.id === 0) : null;
+          if (p0 && p0.val > 0) pos.push(Math.round(p0.val / EMU_MM * 100) / 100);
+        }
+        if (pos.length) s.taquets = pos;
+      }
+    }
     if (ids.has(0x57) && ids.get(0x57).varia) {
       const l = sousBlocs(dv, ids.get(0x57));
       const c = l.find(x => x.id === 1);
@@ -605,18 +632,23 @@
     if (s.souligne) st.push('text-decoration:underline');
     if (s.petitesCapitales) st.push('font-variant:small-caps');
     if (s.couleur && s.couleur !== '#000000') st.push(`color:${s.couleur}`);
-    if (s.exposant) st.push('vertical-align:super;font-size:smaller');
-    if (s.indice) st.push('vertical-align:sub;font-size:smaller');
+    // exposants et indices : 0,65 × la taille du texte, décalés de 0,44 (haut) ou 0,15 (bas), mesuré sur le PDF
+    if (s.exposant || s.indice) st.push(`font-size:${Math.round((taille || 10) * 6.5) / 10}pt`, `vertical-align:${s.exposant ? 0.68 : -0.23}em`, 'line-height:0');
     return st.join(';');
   }
 
-  // hauteur de ligne naturelle des polices courantes (en fraction de la taille)
+  // hauteur de ligne naturelle des polices courantes (en fraction de la taille), pour les paragraphes à interligne réglé (0x34)
   const RATIO_POLICE = { 'calibri': 1.221, 'calibri light': 1.221, 'cambria': 1.172, 'arial': 1.149, 'arial black': 1.41, 'arial narrow': 1.149, 'times new roman': 1.15,
     'verdana': 1.215, 'tahoma': 1.207, 'georgia': 1.136, 'segoe ui': 1.33, 'comic sans ms': 1.394, 'trebuchet ms': 1.161, 'courier new': 1.133,
     'impact': 1.219, 'garamond': 1.12, 'century gothic': 1.226, 'book antiqua': 1.17, 'bookman old style': 1.17, 'franklin gothic medium': 1.134, 'candara': 1.221, 'corbel': 1.221, 'constantia': 1.221 };
+  // pas des lignes à interligne simple (en fraction de la taille), LU dans les .pub : la hauteur de texte des cellules (0x9) moins
+  // les marges donne 1,059 sur 700 cellules et 1,043 en gras sur 158 (confirmé par le PDF ; le navigateur donne 1,15).
+  // Aucune règle générale trouvée : Matura MT suit les mesures Windows (1,331), pas Times.
+  // N'ajouter ici que des polices mesurées ainsi ; les autres gardent la hauteur naturelle du navigateur.
+  const PAS_MESURE = { 'times new roman': [1.059, 1.043] };
   const ratioPolice = n => RATIO_POLICE[(n || '').toLowerCase()] || 1.15;
 
-  function cssPar(p, police, taille) {
+  function cssPar(p, police, taille, gras) {
     const st = [];
     if (p.align && p.align !== 'left') st.push(`text-align:${p.align}`);
     if (p.retraitG) st.push(`margin-left:${+p.retraitG.toFixed(2)}mm`);
@@ -631,6 +663,13 @@
       if (taille) st.push(`font-size:${taille}pt`);
     }
     if (p.interligneP) st.push(`line-height:${+p.interligneP.toFixed(1)}pt`);
+    // interligne simple : pas mesuré si on le connaît ; la ligne d'appui du paragraphe prend la police et la taille de son texte
+    if (!p.interligne && !p.interligneP) {
+      const pas = PAS_MESURE[(police || '').toLowerCase()];
+      if (pas) st.push(`line-height:${pas[gras ? 1 : 0]}`);
+      if (police) st.push(`font-family:'${police.replace(/'/g, '')}'`);
+      if (taille) st.push(`font-size:${taille}pt`);
+    }
     return st.join(';');
   }
 
@@ -672,6 +711,7 @@
         const ps = sPar(runA(Q.runsPar, Math.max(p, q === fin ? p : q)));
         let contenu = '';
         let tailleMax = 0;
+        let sDom = null, nDom = -1; // style du plus long morceau du paragraphe (et non du premier caractère, souvent une puce)
         let i = p;
         while (i < q) {
           const ri = runA(Q.runsCar, i);
@@ -682,6 +722,8 @@
           let morceau = t.slice(i, finRun)
             .replace(/[\u0000-\u0008\u000c\u000e-\u001f]/g, '');
           morceau = echapper(morceau).replace(/\u000b/g, '<br>');
+          const nm = morceau.replace(/s/g, '').length;
+          if (nm > nDom) { nDom = nm; sDom = s; }
           if (morceau) contenu += `<span style="${cssCar(s, base)}">${morceau}</span>`;
           i = finRun;
         }
@@ -694,8 +736,8 @@
           const car = c < 0x100 ? `<span style="font-family:Wingdings">${echapper(String.fromCharCode(c))}</span>` : echapper(String.fromCharCode(c));
           puce = `<span class="puce" contenteditable="false" style="${cssCar(sFin, base)}">${car} </span>`;
         }
-        const s0 = sCar(runA(Q.runsCar, p));
-        out += `<p style="${cssPar(ps, s0.police || base.police, s0.taille || base.taille)}">${puce}${contenu}</p>`;
+        const s0 = sDom || sCar(runA(Q.runsCar, p));
+        out += `<p${ps.taquets ? ` data-taquets="${ps.taquets.join(';')}"` : ''} style="${cssPar(ps, s0.police || base.police, s0.taille || base.taille, s0.gras)}">${puce}${contenu}</p>`;
         p = q + 1;
         if (q === fin) break;
       }
@@ -793,6 +835,21 @@
     const P = f => (f && f.props) || {};
     const val = (props, id, def) => (id in props ? props[id].val : def);
 
+    // couleur « calculée » d'Office (octet haut 0x10) : couleur de fond ou de contour de la forme, assombrie ou éclaircie
+    function couleurCalculee(v, props) {
+      if ((v >>> 24) !== 0x10) return couleurRGB(v, palette);
+      const base = couleurRGB(val(props, (v & 0xff) === 0xf0 ? 0x181 : 0x1c0, 0), palette) || '#000000';
+      const op = (v >> 8) & 0xf, k = ((v >> 16) & 0xff) / 255;
+      return '#' + [1, 3, 5].map(i => { const x = parseInt(base.slice(i, i + 2), 16); return Math.round(op === 1 ? x * k : op === 2 ? 255 - (255 - x) * k : x).toString(16).padStart(2, '0'); }).join('');
+    }
+    // ombre portée (0x23F : bit 1 = ombre, bit 17 = valeur définie ; décalage 0x205 / 0x206 en EMU ; couleur 0x201)
+    function ombrePortee(props) {
+      const b = val(props, 0x23f, 0);
+      if (!(b & 0x20000) || !(b & 2)) return null;
+      const type = val(props, 0x200, 0);
+      if (type !== 0) return null; // ombres en perspective, doubles… : non reprises
+      return { dx: mm(s32(val(props, 0x205, 25400))), dy: mm(s32(val(props, 0x206, 25400))), flou: 0, couleur: couleurCalculee(val(props, 0x201, 0x808080), props) || '#808080' };
+    }
     function remplissage(props) {
       const bool = val(props, 0x1bf, null);
       let plein = true;
@@ -811,6 +868,12 @@
       if (typeF === 3 || typeF === 2) {
         const pib = val(props, 0x186, 0);
         if (pib) { const ref = refImage(pib); if (ref) r.image = ref; }
+      }
+      // motif (hachures…) : petite image répétée, couleur de premier plan 0x181 et d'arrière-plan 0x183
+      if (typeF === 1) {
+        const pib = val(props, 0x186, 0);
+        const ref = pib ? refImage(pib) : null;
+        if (ref) { r.motif = ref; r.fondMotif = couleurRGB(val(props, 0x183, 0xffffff), palette) || '#ffffff'; }
       }
       return r;
     }
@@ -831,17 +894,63 @@
       return t;
     }
 
+    // Formes « à formules » (formes Office 2007 enregistrées en .pub : secteur, arc…) : les points peuvent renvoyer
+    // à des guides calculés (0x156, 8 octets chacun : opération + 3 paramètres) à partir des valeurs d'ajustement
+    // (0x147…0x150, angles en degrés × 65 536). Décodé sur les secteurs d'un diagramme circulaire (nov. 2026).
+    function guides(props, cadre) {
+      const adj = []; for (let k = 0; k < 10; k++) adj.push(s32(val(props, 0x147 + k, 0)));
+      const g = [];
+      const p = props[0x156] && props[0x156].data && props[0x156].data.length >= 6 && vue(props[0x156].data).getUint16(4, true) === 8 ? props[0x156]
+        : props[0x155] && props[0x155].data && props[0x155].data.length >= 6 && vue(props[0x155].data).getUint16(4, true) === 8 ? props[0x155] : null;
+      const ref = r => (r >= 0x140 && r <= 0x143 ? cadre[r - 0x140] : r >= 0x147 && r <= 0x150 ? adj[r - 0x147] : r >= 0x400 && r < 0x400 + g.length ? g[r - 0x400] : r === 0x4f7 || r === 0x4f8 || r === 0x4f9 ? 1 : 0);
+      if (p) {
+        const d = vue(p.data), n = d.getUint16(0, true);
+        const deg = a => a / 65536 * Math.PI / 180;
+        for (let i = 0; i < n && 6 + i * 8 + 8 <= p.data.length; i++) {
+          const o = 6 + i * 8, sgf = d.getUint16(o, true);
+          const prm = [1, 2, 3].map((k, j) => { const v = d.getUint16(o + k * 2, true); return sgf & (0x2000 << j) ? ref(v) : (v << 16 >> 16); });
+          const [a, b, c] = prm;
+          let r = 0;
+          switch (sgf & 0x1fff) {
+            case 0: r = a + b - c; break;
+            case 1: r = c ? a * b / c : 0; break;
+            case 2: r = (a + b) / 2; break;
+            case 3: r = Math.abs(a); break;
+            case 4: r = Math.min(a, b); break;
+            case 5: r = Math.max(a, b); break;
+            case 6: r = a > 0 ? b : c; break;
+            case 7: r = Math.sqrt(a * a + b * b + c * c); break;
+            case 8: r = Math.atan2(b, a) * 180 / Math.PI * 65536; break;
+            case 9: r = a * Math.sin(deg(b)); break;
+            case 10: r = a * Math.cos(deg(b)); break;
+            case 11: r = a * Math.cos(Math.atan2(c, b)); break;
+            case 12: r = a * Math.sin(Math.atan2(c, b)); break;
+            case 13: r = Math.sqrt(Math.max(0, a)); break;
+            case 14: r = a + b * 65536 - c * 65536; break;
+            case 15: r = c ? b * Math.sqrt(Math.max(0, 1 - (a / c) * (a / c))) : 0; break;
+            case 16: r = a * Math.tan(deg(b)); break;
+            default: r = 0;
+          }
+          g.push(r);
+        }
+      }
+      return g;
+    }
     function geometrie(props) {
       const v = props[0x145], s = props[0x146];
       if (!v || !v.data) return null;
       const d = vue(v.data);
       if (v.data.length < 6) return null;
       const n = d.getUint16(0, true), cb = d.getUint16(4, true);
+      const cadre = [val(props, 0x140, 0), val(props, 0x141, 0), val(props, 0x142, 21600), val(props, 0x143, 21600)];
+      const G = guides(props, cadre);
+      // coordonnée qui renvoie à un guide : bit de poids fort + numéro du guide
+      const coord = (x, bits) => { const u = bits === 32 ? x >>> 0 : x & 0xffff, haut = bits === 32 ? 0x80000000 : 0x8000; if (u & haut) { const k = u & (haut - 1); if (k < G.length) return Math.round(G[k]); } return x; };
       const pts = [];
       for (let i = 0; i < n; i++) {
         const o = 6 + i * (cb === 0xfff0 ? 4 : cb);
-        if (cb === 0xfff0 || cb === 4) { if (o + 4 > v.data.length) break; pts.push([d.getInt16(o, true), d.getInt16(o + 2, true)]); }
-        else { if (o + 8 > v.data.length) break; pts.push([d.getInt32(o, true), d.getInt32(o + 4, true)]); }
+        if (cb === 0xfff0 || cb === 4) { if (o + 4 > v.data.length) break; pts.push([coord(d.getInt16(o, true), 16), coord(d.getInt16(o + 2, true), 16)]); }
+        else { if (o + 8 > v.data.length) break; pts.push([coord(d.getInt32(o, true), 32), coord(d.getInt32(o + 4, true), 32)]); }
       }
       const segs = [];
       if (s && s.data && s.data.length >= 6) {
@@ -849,9 +958,7 @@
         const ns = sd.getUint16(0, true);
         for (let i = 0; i < ns && 6 + i * 2 + 2 <= s.data.length; i++) segs.push(sd.getUint16(6 + i * 2, true));
       }
-      const gauche = val(props, 0x140, 0), haut = val(props, 0x141, 0);
-      const droite = val(props, 0x142, 21600), bas = val(props, 0x143, 21600);
-      return { pts, segs, cadre: [gauche, haut, droite, bas] };
+      return { pts, segs, cadre };
     }
 
     let compteur = 0;
@@ -872,10 +979,22 @@
         [w, h] = [h, w];
         x = cx - w / 2; y = cy - h / 2;
       }
+      // rotation des groupes : le centre tourne autour de celui du groupe, et la forme tourne d'autant
+      let rotGroupe = 0;
+      for (const g of f.rotations || []) {
+        const c = Math.cos(g.a * Math.PI / 180), s = Math.sin(g.a * Math.PI / 180);
+        const dx = x + w / 2 - g.cx, dy = y + h / 2 - g.cy;
+        x = g.cx + dx * c - dy * s - w / 2; y = g.cy + dx * s + dy * c - h / 2;
+        rotGroupe += g.a;
+      }
       const o = { id: nouvelId(), x: mm(x), y: mm(y), w: mm(w), h: mm(h), _z: f.ordre || 0 };
       if (rot) o.rot = Math.round(rot * 100) / 100;
       if (f.flags & 0x40) o.miroirH = true;
       if (f.flags & 0x80) o.miroirV = true;
+      // Office tourne la forme puis la retourne ; l'affichage retourne puis tourne : un retournement dans un seul sens
+      // inverse donc le sens de rotation (vérifié sur un secteur de diagramme circulaire, nov. 2026)
+      if (o.rot && !o.miroirH !== !o.miroirV) o.rot = Math.round((360 - rot) % 360 * 100) / 100;
+      if (rotGroupe) { const r2 = Math.round(((o.rot || 0) + rotGroupe) % 360 * 100) / 100; if (r2) o.rot = r2; else delete o.rot; }
       void ch;
       return o;
     }
@@ -914,7 +1033,7 @@
           defCells = sousBlocs(dv, cb.get(0x2)).map(e => {
             const m = carte(sousBlocs(dv, e));
             const g = k => (m.has(k) ? m.get(k).val : 0);
-            return { r1: g(1), r2: g(2), c1: g(3), c2: g(4), marges: [0xa, 0xb, 0xc, 0xd].map(k => (m.has(k) ? mm(m.get(k).val) : 1)), sens: g(6) };
+            return { r1: g(1), r2: g(2), c1: g(3), c2: g(4), marges: [0xa, 0xb, 0xc, 0xd].map(k => (m.has(k) ? mm(m.get(k).val) : 1)), sens: g(6), vertical: g(7) };
           });
         }
       }
@@ -942,6 +1061,9 @@
       const fondT = tinfo.fond ? remplissage(tinfo.fond) : null;
       const cellules = defCells.map((c, i) => {
         const cel = { l: c.r1, c: c.c1, nl: c.r2 - c.r1 + 1, nc: c.c2 - c.c1 + 1, html: textes[i] || '<p><br></p>' };
+        // 0x7 : alignement vertical de la cellule (1 = milieu ; 2 = bas, par analogie avec les zones de texte)
+        if (c.vertical === 1) cel.vertical = 'milieu'; else if (c.vertical === 2) cel.vertical = 'bas';
+        if (c.marges && defCells[0] && c.marges.join() !== defCells[0].marges.join()) cel.marges = c.marges;
         if (c.sens === 2) cel.sensTexte = 'haut-bas';
         else if (c.sens === 1) cel.sensTexte = 'bas-haut';
         const pc = tinfo.cellules.get(i);
@@ -968,6 +1090,7 @@
         }
       }
       o.type = 'tableau';
+      o.cesure = true;
       o.tableau = { cols, lignes, cellules, marges: (defCells[0] && defCells[0].marges) || [1, 1, 1, 1] };
       if (fondT) o.tableau.fond = fondT.couleur;
       return o;
@@ -1026,7 +1149,8 @@
 
       const pib = val(props, 0x104, 0);
       const idTexte = ch.has(0x27) ? ch.get(0x27).val : (0x80 in props ? props[0x80].val : null);
-      const forme = FORMES[f.stype] || 'rect';
+      // forme inconnue mais décrite par ses points (formes Office 2007 : secteur…) : tracée comme forme libre
+      const forme = FORMES[f.stype] || (props[0x145] && props[0x146] ? 'libre' : 'rect');
 
       if (pib) {
         o.type = 'image';
@@ -1038,6 +1162,10 @@
         if (haut || bas || gauche || droite) o.rognage = [haut, droite, bas, gauche].map(v => Math.round(v * 10000) / 10000);
         const tr = trait(props, false);
         if (tr) o.trait = tr;
+        // fond de l'image (équations sur fond blanc) : seulement s'il est demandé explicitement
+        if ((val(props, 0x1bf, 0) & 0x100010) === 0x100010) { const fi = remplissage(props); if (fi && fi.couleur) o.fond = { couleur: fi.couleur }; }
+        const omI = ombrePortee(props);
+        if (omI) o.ombre = omI;
         sortie.push(o);
         return;
       }
@@ -1062,9 +1190,14 @@
       if (fr && !(f.stype === 202 && val(props, 0x1bf, null) == null)) o.fond = fr;
       const tr = trait(props, f.stype !== 202);
       if (tr) o.trait = tr;
+      const om = ombrePortee(props);
+      if (om) o.ombre = om;
       if (o.type === 'texte') {
         o.html = texteHistoire(idTexte);
         o._histoire = idTexte;
+        // l'application d'origine coupe les mots par défaut (27 coupures sur le PDF d'une fiche de 32 pages, nov. 2026 ;
+        // aucun réglage par zone trouvé dans le fichier) : le bouton Césure permet de la retirer
+        o.cesure = true;
         o.marges = marges(props);
         const anc = val(props, 0x87, 0);
         o.vertical = anc === 1 || anc === 4 ? 'milieu' : anc === 2 || anc === 5 ? 'bas' : 'haut';
@@ -1120,13 +1253,17 @@
     while (pages.length > 1 && !pages[pages.length - 1].items.length) pages.pop();
     if (!pages.length) pages.push({ id: 'p1', maitre: null, items: [] });
 
+    // tabulation par défaut du document (bloc document, 0x15, en EMU) : environ 10 mm dans les fiches françaises
+    const tabDoc = doc.has(0x15) ? doc.get(0x15).val : null;
+    const tabulation = tabDoc > 36000 && tabDoc < 3600000 ? Math.round(tabDoc / EMU_MM * 100) / 100 : null;
+
     // titre
     let titre = options.nom || 'Fiche';
     titre = titre.replace(/\.pub$/i, '');
 
     return {
       format: 'pagelibre', version: 1, titre,
-      page: { w: mm(pageW), h: mm(pageH) },
+      page: Object.assign({ w: mm(pageW), h: mm(pageH) }, tabulation ? { tabulation } : {}),
       palette, images, maitres, pages,
       avertissements: [...new Set(avertissements)]
     };

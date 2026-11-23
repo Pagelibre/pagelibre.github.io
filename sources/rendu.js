@@ -119,13 +119,55 @@
       for (i = 1; i < g.pts.length; i++) d += 'L' + pt(i);
       return d;
     }
+    const P = k => g.pts[Math.min(k, g.pts.length - 1)];
+    const ecran = q => f2((q[0] - gl) * sx) + ' ' + f2((q[1] - gt) * sy);
+    let courant = null; // dernier point tracé (coordonnées de la forme)
+    // arc d'ellipse (cadre l,t – r,b) du point a au point b : sens inverse des aiguilles (ArcTo, Arc) ou sens horaire
+    const arc = (c1, c2, a, b, horaire, relie) => {
+      const cx = (c1[0] + c2[0]) / 2, cy = (c1[1] + c2[1]) / 2, rx = Math.abs(c2[0] - c1[0]) / 2 || 1, ry = Math.abs(c2[1] - c1[1]) / 2 || 1;
+      const ang = q => Math.atan2((q[1] - cy) / ry, (q[0] - cx) / rx);
+      const a0 = ang(a), a1 = ang(b), sur = t => [cx + rx * Math.cos(t), cy + ry * Math.sin(t)];
+      let balayage = horaire ? a1 - a0 : a0 - a1;
+      while (balayage <= 1e-9) balayage += 2 * Math.PI;
+      const debut = sur(a0), fin = sur(a1);
+      d += (relie && courant ? 'L' : 'M') + ecran(debut);
+      const A = (q, grand) => `A${f2(rx * sx)} ${f2(ry * sy)} 0 ${grand} ${horaire ? 1 : 0} ${ecran(q)}`;
+      if (balayage > 2 * Math.PI - 1e-6) d += A(sur(a0 + (horaire ? Math.PI : -Math.PI)), 0) + A(fin, 0); // ellipse complète
+      else d += A(fin, balayage > Math.PI ? 1 : 0);
+      courant = fin;
+    };
     for (const s of g.segs) {
       const t = s >> 13, n = s & 0x1fff;
-      if (t === 2) { d += 'M' + pt(i++); }
-      else if (t === 0) { for (let k = 0; k < (n || 1); k++) d += 'L' + pt(i++); }
-      else if (t === 1) { for (let k = 0; k < (n || 1); k++) { d += 'C' + pt(i) + ' ' + pt(i + 1) + ' ' + pt(i + 2); i += 3; } }
+      if (t === 2) { courant = P(i); d += 'M' + pt(i++); }
+      else if (t === 0) { for (let k = 0; k < (n || 1); k++) { courant = P(i); d += 'L' + pt(i++); } }
+      else if (t === 1) { for (let k = 0; k < (n || 1); k++) { d += 'C' + pt(i) + ' ' + pt(i + 1) + ' ' + pt(i + 2); courant = P(i + 2); i += 3; } }
       else if (t === 3) d += 'Z';
       else if (t === 4) break;
+      else if (t === 5) {
+        // commandes spéciales : arcs, quarts d'ellipse, courbes quadratiques ; « sans remplissage »… n'ont pas de point
+        const code = (s >> 8) & 0x1f, m = s & 0xff;
+        if (code >= 3 && code <= 6) {
+          for (let k = 0, nb = Math.max(1, Math.floor(m / 4)); k < nb && i + 3 < g.pts.length; k++) { arc(P(i), P(i + 1), P(i + 2), P(i + 3), code === 5 || code === 6, code === 3 || code === 5); i += 4; }
+        } else if (code === 1 || code === 2) {
+          for (let k = 0; k < Math.max(1, Math.floor(m / 3)); k++) {
+            const c = P(i), r = P(i + 1), an = P(i + 2); i += 3;
+            const deb = an[0] / 65536 * Math.PI / 180, bal = an[1] / 65536 * Math.PI / 180;
+            const q = t2 => [c[0] + r[0] * Math.cos(t2), c[1] + r[1] * Math.sin(t2)];
+            arc([c[0] - r[0], c[1] - r[1]], [c[0] + r[0], c[1] + r[1]], q(deb), q(deb + bal), bal > 0, code === 1);
+          }
+        } else if (code === 7 || code === 8) {
+          let enX = code === 7;
+          for (let k = 0; k < Math.max(1, m); k++) {
+            const q = P(i++), o0 = courant || q, kk = 0.5523;
+            const c1 = enX ? [o0[0] + (q[0] - o0[0]) * kk, o0[1]] : [o0[0], o0[1] + (q[1] - o0[1]) * kk];
+            const c2 = enX ? [q[0], q[1] - (q[1] - o0[1]) * kk] : [q[0] - (q[0] - o0[0]) * kk, q[1]];
+            d += 'C' + ecran(c1) + ' ' + ecran(c2) + ' ' + ecran(q);
+            courant = q; enX = !enX;
+          }
+        } else if (code === 9) {
+          for (let k = 0; k < Math.max(1, Math.floor(m / 2)); k++) { d += 'Q' + pt(i) + ' ' + pt(i + 1); courant = P(i + 1); i += 2; }
+        }
+      }
     }
     return d || 'M0 0';
   }
@@ -155,9 +197,46 @@
     }
   }
 
+  // motif BMP 8 × 8 à 1 bit par point : 64 booléens (vrai = point de premier plan, clair dans l'image), ou null si autre format
+  const cacheMotifs = new Map();
+  function pixelsMotif(url) {
+    if (cacheMotifs.has(url)) return cacheMotifs.get(url);
+    let r = null;
+    try {
+      const m = /^data:image\/bmp;base64,(.*)$/.exec(url);
+      if (m) {
+        const b = Uint8Array.from(atob(m[1]), c => c.charCodeAt(0)), dv = new DataView(b.buffer);
+        const off = dv.getUint32(10, true), w = dv.getInt32(18, true), h = dv.getInt32(22, true), bpp = dv.getUint16(28, true), tete = dv.getUint32(14, true);
+        if (bpp === 1 && w === 8 && Math.abs(h) === 8) {
+          const pal = [0, 1].map(i => { const q = 14 + tete + i * 4; return b[q] + b[q + 1] + b[q + 2]; });
+          r = [];
+          for (let y = 0; y < 8; y++) {
+            const ligne = b[off + (h > 0 ? 7 - y : y) * 4];
+            for (let x = 0; x < 8; x++) r.push(pal[(ligne >> (7 - x)) & 1] >= 384);
+          }
+        }
+      }
+    } catch (e) { r = null; }
+    cacheMotifs.set(url, r);
+    return r;
+  }
+
   function appliquerFond(e, f, defs, fiche, o) {
     if (!f) { e.setAttribute('fill', 'none'); return; }
-    if (f.image && fiche.images[f.image]) {
+    if (f.motif && fiche.images[f.motif]) {
+      // motif répété (hachures) : carreau de 8 × 8 points écran ; les points clairs du motif prennent la couleur
+      // de premier plan, les sombres celle d'arrière-plan (comme dans l'application d'origine)
+      const px = pixelsMotif(fiche.images[f.motif]);
+      const id = 'mf' + (++compteurDef), u = 25.4 / 96;
+      const p = el('pattern', { id, patternUnits: 'userSpaceOnUse', width: f2(8 * u), height: f2(8 * u) }, defs);
+      el('rect', { x: 0, y: 0, width: f2(8 * u), height: f2(8 * u), fill: f.fondMotif || '#ffffff' }, p);
+      if (px) {
+        let d = '';
+        for (let y = 0; y < 8; y++) for (let x = 0; x < 8; x++) if (px[y * 8 + x]) d += `M${f2(x * u)} ${f2(y * u)}h${f2(u)}v${f2(u)}h${f2(-u)}z`;
+        if (d) el('path', { d, fill: f.couleur || '#000000' }, p);
+      } else el('image', { href: fiche.images[f.motif], x: 0, y: 0, width: f2(8 * u), height: f2(8 * u), preserveAspectRatio: 'none' }, p);
+      e.setAttribute('fill', `url(#${id})`);
+    } else if (f.image && fiche.images[f.image]) {
       const id = 'pf' + (++compteurDef);
       const p = el('pattern', { id, patternUnits: 'objectBoundingBox', width: 1, height: 1, patternContentUnits: 'objectBoundingBox' }, defs);
       el('image', { href: fiche.images[f.image], x: 0, y: 0, width: 1, height: 1, preserveAspectRatio: 'none' }, p);
@@ -236,7 +315,7 @@
     return b ? `${Math.max(b.e * PT_MM, 0.1).toFixed(2)}mm solid ${b.c}` : '';
   }
 
-  function tableau(o, d) {
+  function tableau(o, d, fiche) {
     const T = o.tableau;
     const t = document.createElement('table');
     t.className = 'tab';
@@ -261,7 +340,16 @@
           td.dataset.cellule = i;
           if (c.nl > 1) td.rowSpan = c.nl;
           if (c.nc > 1) td.colSpan = c.nc;
-          td.style.padding = `${m[1]}mm ${m[2]}mm ${m[3]}mm ${m[0]}mm`;
+          // les bordures sont dessinées à cheval sur le bord de la cellule, sans réduire la place du texte ; le navigateur, lui,
+          // en loge la moitié dans la cellule (la plus épaisse des deux voisines) : on retire cette moitié des marges
+          const mc = c.marges || m;
+          const voisine = (l, k2) => (l >= 0 && l < nl && k2 >= 0 && k2 < nc && occupe[l][k2] != null ? (T.cellules[occupe[l][k2]].bords || {}) : {});
+          const demi = (x, y) => Math.max(...[x, y].map(q => (q ? Math.max(q.e * PT_MM, 0.1) / 2 : 0)));
+          const bc = c.bords || {};
+          const pad = [mc[1] - demi(bc.h, voisine(c.l - 1, c.c).b), mc[2] - demi(bc.d, voisine(c.l, c.c + c.nc).g),
+            mc[3] - demi(bc.b, voisine(c.l + c.nl, c.c).h), mc[0] - demi(bc.g, voisine(c.l, c.c - 1).d)].map(v => Math.max(0, v).toFixed(2));
+          // 0,3 mm de tolérance à droite : le navigateur arrondit les largeurs de colonne au point écran
+          td.style.padding = `${pad[0]}mm ${Math.max(0, pad[1] - 0.3).toFixed(2)}mm ${pad[2]}mm ${pad[3]}mm`;
           const fond = c.fond || T.fond;
           if (fond) td.style.backgroundColor = fond;
           if (c.diagonale) {
@@ -283,13 +371,15 @@
             td.classList.add('a-diagonale');
           }
           const ct = contenuTexte(c.html);
+          if (fiche && fiche.page.tabulation) ct.style.tabSize = fiche.page.tabulation + 'mm';
+          if (o.cesure) { cesurer(ct); ct.classList.add('cesure'); }
           if (c.diagonale) ct.classList.add('diag-bas');
           if (c.sensTexte) {
             // flux orthogonal : sans hauteur imposée, le navigateur prend celle de la fenêtre
             ct.classList.add('sens-' + c.sensTexte);
             let hc = 0;
             for (let r2 = c.l; r2 < Math.min(c.l + c.nl, nl); r2++) hc += T.lignes[r2];
-            ct.style.height = Math.max(hc - m[1] - m[3], 1) + 'mm';
+            ct.style.height = Math.max(hc - mc[1] - mc[3], 1) + 'mm';
           }
           td.appendChild(ct);
           tr.appendChild(td);
@@ -306,11 +396,13 @@
 
   function wordart(o, d, fiche) {
     const W = o.wordart;
+    // « Copperplate Gothic Bold » : le navigateur connaît la famille « Copperplate Gothic » en gras
+    const fg = /^(.+) Bold$/i.exec(W.police || '');
     const s = el('svg', { class: 'svg-wordart', viewBox: `0 0 ${f2(o.w)} ${f2(o.h)}`, preserveAspectRatio: 'none' });
     const defs = el('defs', {}, s);
     const t = el('text', {
-      x: 0, y: f2(o.h * 0.8), 'font-size': f2(o.h * 0.95), 'font-family': W.police,
-      'font-weight': W.gras ? 'bold' : null, 'font-style': W.italique ? 'italic' : null,
+      x: 0, y: f2(o.h * 0.8), 'font-size': f2(o.h * 0.95), 'font-family': fg ? `'${W.police}', '${fg[1]}'` : W.police,
+      'font-weight': W.gras || fg ? 'bold' : null, 'font-style': W.italique ? 'italic' : null,
       textLength: f2(o.w), lengthAdjust: 'spacingAndGlyphs'
     }, s);
     t.textContent = W.texte;
@@ -462,7 +554,8 @@
     const noeuds = [];
     for (let t = tw.nextNode(); t; t = tw.nextNode()) if (!t.parentElement.closest('.puce,.champ-page,.lettrine')) noeuds.push(t);
     for (const t of noeuds) {
-      t.nodeValue = t.nodeValue.replace(/[A-Za-zÀ-ÖØ-öø-ÿœŒæÆ]{7,}/g, m => {
+      t.nodeValue = t.nodeValue.replace(/[A-Za-zÀ-ÖØ-öø-ÿœŒæÆ-]{6,}/g, m => {
+        if (m.includes('-')) return m; // mot composé : il se coupe déjà à son trait d'union
         const p = coupuresMot(m);
         let r = '', k = 0;
         for (const c of p) { r += m.slice(k, c) + '­'; k = c; }
@@ -614,6 +707,7 @@
       case 'image': {
         const clip = document.createElement('div');
         clip.className = 'clip';
+        if (o.fond && o.fond.couleur) clip.style.backgroundColor = o.fond.couleur;
         const src = o.image && fiche.images[o.image];
         if (src && /^data:image\/x-(emf|wmf)/.test(src)) {
           clip.classList.add('manquante');
@@ -667,7 +761,8 @@
             ct.style.height = '100%';
             cadre.classList.add('colonnes');
           }
-          if (o.tabulation) ct.style.tabSize = (o.tabulation / z) + 'mm';
+          const pasTab = o.tabulation || fiche.page.tabulation; // réglée sur la zone, sinon celle du document
+          if (pasTab) ct.style.tabSize = (pasTab / z) + 'mm';
           const deux = [];
           for (const fl of flottantsHabillage(o, ctx && ctx.obstacles, z, deux).reverse()) ct.insertBefore(fl, ct.firstChild);
           if (deux.length) ct.dataset.exclusions = JSON.stringify(deux);
@@ -690,7 +785,7 @@
         break;
       }
       case 'ligne': d.appendChild(svgForme(o, fiche, false)); break;
-      case 'tableau': tableau(o, d); if (o.biseau) d.appendChild(biseauRect(o)); break;
+      case 'tableau': tableau(o, d, fiche); if (o.biseau) d.appendChild(biseauRect(o)); break;
       case 'wordart': wordart(o, d, fiche); break;
     }
     remplirChamps(d, ctx);
