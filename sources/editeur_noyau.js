@@ -390,6 +390,7 @@ function cadreSel(o, opt) {
       bd.className = 'bord-sel bord-' + cote;
       d.appendChild(bd);
     }
+    if (o.forme === 'secteur') poigneesSecteur(o, d, k);
     const petit = o.w * k < 26 || o.h * k < 26;
     const pos = { nw: [0, 0], n: [50, 0], ne: [100, 0], e: [100, 50], se: [100, 100], s: [50, 100], sw: [0, 100], w: [0, 50] };
     for (const nom in pos) {

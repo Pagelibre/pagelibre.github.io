@@ -123,6 +123,29 @@ function wmfEquation() {
     v(m2.rouvert, 'motifs gardés après enregistrement et réouverture');
     v(m2.retire, 'motif retiré');
 
+    /* petites capitales, secteur, bordure décorative, groupe retourné, retrait de bordure */
+    await edge.eval(`E.modifie = false; chargerFiche(normaliserFiche({ titre: 'x', page: { w: 210, h: 297 }, pages: [{ id: 'p1', items: [
+      { id: 's1', type: 'forme', forme: 'secteur', x: 20, y: 20, w: 40, h: 40, angles: [0, 90], fond: { couleur: '#ff0000' } },
+      { id: 'b1', type: 'texte', forme: 'rect', x: 20, y: 80, w: 80, h: 40, marges: [1, 1, 1, 1], trait: { couleur: '#000000', epaisseur: 2 }, html: '<p><span style="font-size:14pt">Bonjour tout le monde</span></p>' },
+      { id: 'g1', type: 'forme', forme: 'triangle', x: 120, y: 20, w: 10, h: 10, rot: 30, groupe: 'g', fond: { couleur: '#00ff00' } },
+      { id: 'g2', type: 'forme', forme: 'rect', x: 150, y: 40, w: 20, h: 10, groupe: 'g', fond: { couleur: '#0000ff' } }] }] }))`);
+    await attendre(300);
+    const n1 = await edge.eval(`(() => { const r = {}; choisir(['s1']); r.d = elementObjet('s1').querySelector('path').getAttribute('d'); r.poignees = document.querySelectorAll('.p-angle').length; commande('anglesSecteur'); document.querySelector('#se-a').value = '0'; document.querySelector('#se-p').value = '75'; document.querySelector('#boite [data-ok]').click(); r.angles = objetParId('s1').angles.join();
+      const p = document.querySelector('.p-angle[data-poignee="angle1"]').getBoundingClientRect(); r.x = p.left + p.width / 2; r.y = p.top + p.height / 2; const f = elementObjet('s1').getBoundingClientRect(); r.cx = f.left + f.width / 2; r.bas = f.bottom; return r; })()`);
+    v(/^M20 20L40 20A20 20 0 0 1 20 40Z$/.test(n1.d) && n1.poignees === 2 && n1.angles === '0,270', `secteur : tracé, 2 poignées, boîte des angles (${n1.angles})`);
+    await edge.glisser(n1.x, n1.y, n1.cx, n1.bas + 20);
+    const n2 = await edge.eval(`({ a: objetParId('s1').angles.join(), apresAnnul: (annuler(), objetParId('s1').angles.join()) })`);
+    v(n2.a === '0,90' && n2.apresAnnul === '0,270', `secteur : poignée jaune tirée (${n2.a}), annulable (${n2.apresAnnul})`);
+    const n3 = await edge.eval(`(() => { const r = {}; r.pad = parseFloat(getComputedStyle(elementObjet('b1').querySelector('.cadre-texte')).paddingLeft) / (96 / 25.4); choisir(['b1']); commande('petitesCapitales'); r.pc = /small-caps/.test(objetParId('b1').html) && /small-caps/.test(elementObjet('b1').querySelector('.contenu').innerHTML); commande('petitesCapitales'); r.pc2 = /small-caps/.test(elementObjet('b1').querySelector('.contenu').innerHTML);
+      choisir(['b1']); commande('bordureDeco'); r.n = document.querySelectorAll('#bd-grille [data-b]').length; document.querySelector('#bd-grille [data-b="b4"]').click(); document.querySelector('#bd-c').value = '#bf9000'; document.querySelector('#bd-e').value = '12'; document.querySelector('#boite [data-ok]').click(); r.img = elementObjet('b1').querySelectorAll('.bordure-deco image').length; r.pad2 = parseFloat(getComputedStyle(elementObjet('b1').querySelector('.cadre-texte')).paddingLeft) / (96 / 25.4);
+      document.querySelector('#boite').hidden || fermerBoite(); choisir(['b1']); commande('bordureDeco'); r.coul = document.querySelector('#bd-c').value; r.ep = +document.querySelector('#bd-e').value; fermerBoite(); const j = JSON.parse(jsonFiche()); r.sauve = Object.keys(j.images).filter(k => /^bd-/.test(k)).length; E.modifie = false; chargerFiche(normaliserFiche(j)); r.rouvert = elementObjet('b1').querySelectorAll('.bordure-deco image').length; return r; })()`);
+    v(Math.abs(n3.pad - 1.71) < 0.05, `texte en retrait de la bordure (${n3.pad.toFixed(2)} mm, attendu 1,71)`);
+    v(n3.pc && !n3.pc2, 'petites capitales : posées, puis retirées');
+    v(n3.n === 12 && n3.img > 40 && Math.abs(n3.pad2 - 5.23) < 0.1 && n3.sauve === 8 && n3.rouvert === n3.img, `bordure décorative : ${n3.img} dessins, gardée après réouverture`);
+    v(n3.coul === '#bf9000' && n3.ep === 12, 'bordure décorative : la boîte reprend sa couleur et son épaisseur');
+    const n4 = await edge.eval(`(() => { choisir(['g1', 'g2']); retourner('h'); const a = objetParId('g1'), b = objetParId('g2'); const r = [a.x > b.x, a.rot, !!a.miroirH, !!b.miroirH]; retourner('h'); r.push(Math.abs(objetParId('g1').x - 120) < 0.05, objetParId('g1').rot); return r; })()`);
+    v(n4[0] && n4[1] === 330 && n4[2] && n4[3] && n4[4] && n4[5] === 30, 'groupe retourné d\'un bloc, deux fois = retour au départ');
+
     /* page entière */
     await edge.eval(`zoomPage()`);
     await attendre(300);

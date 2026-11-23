@@ -349,19 +349,7 @@
   /* ---------- police Symbol → caractères Unicode ----------
      L'éditeur d'équations (Équation 3.0, MathType) écrit Σ, σ, ×, ≤… avec la police Symbol, où « å » vaut Σ.
      On les traduit en vrais caractères : ils s'affichent alors partout, même sans la police Symbol. */
-  const SYMBOL = (() => {
-    const t = {};
-    const grec = 'ΑΒΧΔΕΦΓΗΙϑΚΛΜΝΟΠΘΡΣΤΥςΩΞΨΖ', grecMin = 'αβχδεφγηιϕκλμνοπθρστυϖωξψζ';
-    for (let i = 0; i < 26; i++) { t[65 + i] = grec[i]; t[97 + i] = grecMin[i]; }
-    Object.assign(t, { 0x22: '∀', 0x24: '∃', 0x27: '∋', 0x2A: '∗', 0x2D: '−', 0x40: '≅', 0x5C: '∴', 0x5E: '⊥', 0x60: '‾',
-      0xA1: 'ϒ', 0xA2: '′', 0xA3: '≤', 0xA4: '⁄', 0xA5: '∞', 0xA6: 'ƒ', 0xA7: '♣', 0xA8: '♦', 0xA9: '♥', 0xAA: '♠', 0xAB: '↔', 0xAC: '←', 0xAD: '↑', 0xAE: '→', 0xAF: '↓',
-      0xB0: '°', 0xB1: '±', 0xB2: '″', 0xB3: '≥', 0xB4: '×', 0xB5: '∝', 0xB6: '∂', 0xB7: '•', 0xB8: '÷', 0xB9: '≠', 0xBA: '≡', 0xBB: '≈', 0xBC: '…', 0xBD: '⏐', 0xBE: '⎯', 0xBF: '↵',
-      0xC0: 'ℵ', 0xC1: 'ℑ', 0xC2: 'ℜ', 0xC3: '℘', 0xC4: '⊗', 0xC5: '⊕', 0xC6: '∅', 0xC7: '∩', 0xC8: '∪', 0xC9: '⊃', 0xCA: '⊇', 0xCB: '⊄', 0xCC: '⊂', 0xCD: '⊆', 0xCE: '∈', 0xCF: '∉',
-      0xD0: '∠', 0xD1: '∇', 0xD2: '®', 0xD3: '©', 0xD4: '™', 0xD5: '∏', 0xD6: '√', 0xD7: '⋅', 0xD8: '¬', 0xD9: '∧', 0xDA: '∨', 0xDB: '⇔', 0xDC: '⇐', 0xDD: '⇑', 0xDE: '⇒', 0xDF: '⇓',
-      0xE0: '◊', 0xE1: '〈', 0xE2: '®', 0xE3: '©', 0xE4: '™', 0xE5: '∑', 0xE6: '⎛', 0xE7: '⎜', 0xE8: '⎝', 0xE9: '⎡', 0xEA: '⎢', 0xEB: '⎣', 0xEC: '⎧', 0xED: '⎨', 0xEE: '⎩', 0xEF: '⎪',
-      0xF1: '〉', 0xF2: '∫', 0xF3: '⌠', 0xF4: '⎮', 0xF5: '⌡', 0xF6: '⎞', 0xF7: '⎟', 0xF8: '⎠', 0xF9: '⎤', 0xFA: '⎥', 0xFB: '⎦', 0xFC: '⎫', 0xFD: '⎬', 0xFE: '⎭' });
-    return t;
-  })();
+  const SYMBOL = (racine.LecteurPub || {}).SYMBOL || {}; // table commune, dans lecteur_pub.js
   const estSymbol = nom => /^symbol$/i.test(nom || '');
   // jeu de caractères d'une police WMF (lfCharSet) → page de codes Windows
   const PAGES_CODES = { 161: 'windows-1253', 162: 'windows-1254', 163: 'windows-1258', 177: 'windows-1255', 178: 'windows-1256', 186: 'windows-1257', 204: 'windows-1251', 222: 'windows-874', 238: 'windows-1250' };
@@ -398,7 +386,8 @@
     const W = Math.abs(S.wex) || 1, H = Math.abs(S.wey) || 1;
     const ratio = cible && cible.w > 0 && cible.h > 0 ? cible.w / cible.h : W / H;
     const c = document.createElement('canvas');
-    c.width = Math.max(1, Math.round(ratio >= 1 ? 1600 : 1600 * ratio)); c.height = Math.max(1, Math.round(ratio >= 1 ? 1600 / ratio : 1600));
+    const cote = (cible && cible.px) || 1600;
+    c.width = Math.max(1, Math.round(ratio >= 1 ? cote : cote * ratio)); c.height = Math.max(1, Math.round(ratio >= 1 ? cote / ratio : cote));
     const ctx = c.getContext('2d');
     const objets = [];
     const pile = [];

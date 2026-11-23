@@ -138,6 +138,8 @@ function demarrerPoignee(ev, nom) {
   const p0 = versMM(ev);
   if (nom === 'a' || nom === 'b') {
     G = { type: 'extremite', nom, id: objs[0].id, p0, actif: false };
+  } else if (/^angle[01]$/.test(nom)) {
+    G = gesteAngle(objs[0], +nom[5]);
   } else if (nom === 'rot') {
     const b = objs.length === 1 ? objs[0] : boiteEnglobante(objs);
     const c = { x: b.x + b.w / 2, y: b.y + b.h / 2 };
@@ -799,6 +801,7 @@ function retourner(sens) {
   const s = selection();
   if (!s.length) return;
   avant();
+  if (groupeEntier(s)) { retournerGroupe(s, sens); apres(); return; } // un groupe se retourne d'un bloc
   for (const o of s) {
     const k = sens === 'h' ? 'miroirH' : 'miroirV';
     if (o[k]) delete o[k]; else o[k] = true;
@@ -879,6 +882,7 @@ function surMenuContextuel(ev) {
     items.push({ lib: 'Couper', ic: 'couper', act: couper, rac: 'Ctrl+X' }, { lib: 'Copier', ic: 'copier', act: copier, rac: 'Ctrl+C' });
   }
   items.push({ lib: 'Coller', ic: 'coller', act: collerDepuisBouton, rac: 'Ctrl+V', off: !E.presse });
+  if (s.length === 1 && s[0].forme === 'secteur') items.push({ lib: 'Angles du secteur…', act: boiteAngles });
   if (s.length) {
     items.push({ lib: 'Dupliquer', ic: 'dupliquer', act: dupliquer, rac: 'Ctrl+D' },
       { lib: 'Supprimer l\'objet', ic: 'supprimer', act: supprimerSelection, rac: 'Suppr' }, '-');

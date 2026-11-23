@@ -325,10 +325,11 @@
               // les enfants sont placés dans le cadre non tourné, puis tournent autour du centre du groupe
               let a = f.props[4] ? (f.props[4].val | 0) / 65536 % 360 : 0;
               if (a < 0) a += 360;
-              if (a) {
+              const fh = !!(f.flags & 0x40), fv = !!(f.flags & 0x80);
+              if (a || fh || fv) {
                 const cx = rg.x + rg.w / 2, cy = rg.y + rg.h / 2;
                 if ((a >= 45 && a < 135) || (a >= 225 && a < 315)) rg = { x: cx - rg.h / 2, y: cy - rg.w / 2, w: rg.h, h: rg.w };
-                rotationsEnfants = [{ cx, cy, a }, ...(rotations || [])];
+                rotationsEnfants = [{ cx, cy, a, fh, fv }, ...(rotations || [])];
               }
               transfoEnfants = { ax: rg.x, ay: rg.y, gx: g[0], gy: g[1], sx: rg.w / gw, sy: rg.h / gh };
             } else {
@@ -624,7 +625,7 @@
   function cssCar(s, base) {
     const st = [];
     const police = s.police || base.police;
-    if (police) st.push(`font-family:'${police.replace(/'/g, '')}'`);
+    if (police) st.push(/^symbol$/i.test(police) ? "font-family:'Symbol','Times New Roman'" : `font-family:'${police.replace(/'/g, '')}'`);
     const taille = s.taille || base.taille;
     if (taille) st.push(`font-size:${taille}pt`);
     if (s.gras) st.push('font-weight:bold');
@@ -637,6 +638,22 @@
     return st.join(';');
   }
 
+  // police Symbol → vrais caractères (équations et texte) : « s » y vaut σ, « å » vaut Σ…
+  const SYMBOL = (() => {
+    const t = {};
+    const grec = 'ΑΒΧΔΕΦΓΗΙϑΚΛΜΝΟΠΘΡΣΤΥςΩΞΨΖ', grecMin = 'αβχδεφγηιϕκλμνοπθρστυϖωξψζ';
+    for (let i = 0; i < 26; i++) { t[65 + i] = grec[i]; t[97 + i] = grecMin[i]; }
+    Object.assign(t, { 0x22: '∀', 0x24: '∃', 0x27: '∋', 0x2A: '∗', 0x2D: '−', 0x40: '≅', 0x5C: '∴', 0x5E: '⊥', 0x60: '‾',
+      0xA1: 'ϒ', 0xA2: '′', 0xA3: '≤', 0xA4: '⁄', 0xA5: '∞', 0xA6: 'ƒ', 0xA7: '♣', 0xA8: '♦', 0xA9: '♥', 0xAA: '♠', 0xAB: '↔', 0xAC: '←', 0xAD: '↑', 0xAE: '→', 0xAF: '↓',
+      0xB0: '°', 0xB1: '±', 0xB2: '″', 0xB3: '≥', 0xB4: '×', 0xB5: '∝', 0xB6: '∂', 0xB7: '•', 0xB8: '÷', 0xB9: '≠', 0xBA: '≡', 0xBB: '≈', 0xBC: '…', 0xBD: '⏐', 0xBE: '⎯', 0xBF: '↵',
+      0xC0: 'ℵ', 0xC1: 'ℑ', 0xC2: 'ℜ', 0xC3: '℘', 0xC4: '⊗', 0xC5: '⊕', 0xC6: '∅', 0xC7: '∩', 0xC8: '∪', 0xC9: '⊃', 0xCA: '⊇', 0xCB: '⊄', 0xCC: '⊂', 0xCD: '⊆', 0xCE: '∈', 0xCF: '∉',
+      0xD0: '∠', 0xD1: '∇', 0xD2: '®', 0xD3: '©', 0xD4: '™', 0xD5: '∏', 0xD6: '√', 0xD7: '⋅', 0xD8: '¬', 0xD9: '∧', 0xDA: '∨', 0xDB: '⇔', 0xDC: '⇐', 0xDD: '⇑', 0xDE: '⇒', 0xDF: '⇓',
+      0xE0: '◊', 0xE1: '〈', 0xE2: '®', 0xE3: '©', 0xE4: '™', 0xE5: '∑', 0xE6: '⎛', 0xE7: '⎜', 0xE8: '⎝', 0xE9: '⎡', 0xEA: '⎢', 0xEB: '⎣', 0xEC: '⎧', 0xED: '⎨', 0xEE: '⎩', 0xEF: '⎪',
+      0xF1: '〉', 0xF2: '∫', 0xF3: '⌠', 0xF4: '⎮', 0xF5: '⌡', 0xF6: '⎞', 0xF7: '⎟', 0xF8: '⎠', 0xF9: '⎤', 0xFA: '⎥', 0xFB: '⎦', 0xFC: '⎫', 0xFD: '⎬', 0xFE: '⎭' });
+    return t;
+  })();
+  const enSymbole = s => [...s].map(c => { const u = c.charCodeAt(0), k = u >= 0xf000 && u <= 0xf0ff ? u - 0xf000 : u; return SYMBOL[k] || c; }).join('');
+
   // hauteur de ligne naturelle des polices courantes (en fraction de la taille), pour les paragraphes à interligne réglé (0x34)
   const RATIO_POLICE = { 'calibri': 1.221, 'calibri light': 1.221, 'cambria': 1.172, 'arial': 1.149, 'arial black': 1.41, 'arial narrow': 1.149, 'times new roman': 1.15,
     'verdana': 1.215, 'tahoma': 1.207, 'georgia': 1.136, 'segoe ui': 1.33, 'comic sans ms': 1.394, 'trebuchet ms': 1.161, 'courier new': 1.133,
@@ -645,7 +662,7 @@
   // les marges donne 1,059 sur 700 cellules et 1,043 en gras sur 158 (confirmé par le PDF ; le navigateur donne 1,15).
   // Aucune règle générale trouvée : Matura MT suit les mesures Windows (1,331), pas Times.
   // N'ajouter ici que des polices mesurées ainsi ; les autres gardent la hauteur naturelle du navigateur.
-  const PAS_MESURE = { 'times new roman': [1.059, 1.043] };
+  const PAS_MESURE = { 'times new roman': [1.059, 1.043], 'symbol': [1.225, 1.225], 'wingdings 3': [1.139, 1.139] };
   const ratioPolice = n => RATIO_POLICE[(n || '').toLowerCase()] || 1.15;
 
   function cssPar(p, police, taille, gras) {
@@ -709,6 +726,7 @@
         let q = t.indexOf('\r', p);
         if (q < 0 || q >= fin) q = fin;
         const ps = sPar(runA(Q.runsPar, Math.max(p, q === fin ? p : q)));
+        const morceaux = [];
         let contenu = '';
         let tailleMax = 0;
         let sDom = null, nDom = -1; // style du plus long morceau du paragraphe (et non du premier caractère, souvent une puce)
@@ -721,11 +739,19 @@
           tailleMax = Math.max(tailleMax, s.taille || base.taille);
           let morceau = t.slice(i, finRun)
             .replace(/[\u0000-\u0008\u000c\u000e-\u001f]/g, '');
+          if (/^symbol$/i.test(s.police || '')) morceau = enSymbole(morceau);
           morceau = echapper(morceau).replace(/\u000b/g, '<br>');
-          const nm = morceau.replace(/s/g, '').length;
+          const nm = morceau.replace(/\s/g, '').length;
           if (nm > nDom) { nDom = nm; sDom = s; }
-          if (morceau) contenu += `<span style="${cssCar(s, base)}">${morceau}</span>`;
+          if (morceau) morceaux.push([s, morceau]);
           i = finRun;
+        }
+        const dom = (sDom && sDom.police) || base.police;
+        for (const [s, morceau] of morceaux) {
+          const pol = s.police || base.police;
+          const autre = pol !== dom && PAS_MESURE[(dom || '').toLowerCase()] && !ps.interligne && !ps.interligneP && !s.exposant && !s.indice; // polices mesurées seulement
+          const pm = PAS_MESURE[(pol || '').toLowerCase()];
+          contenu += `<span style="${cssCar(s, base)}${autre && pm ? ';line-height:' + pm[s.gras ? 1 : 0] : ''}">${morceau}</span>`;
         }
         // caractère de fin de paragraphe : donne la taille d'une ligne vide
         const sFin = sCar(runA(Q.runsCar, q < fin ? q : Math.max(p, q - 1)));
@@ -989,12 +1015,16 @@
         x = cx - w / 2; y = cy - h / 2;
       }
       // rotation des groupes : le centre tourne autour de celui du groupe, et la forme tourne d'autant
-      let rotGroupe = 0;
+      let rotGroupe = 0, retH = false, retV = false, inverse = false; // inverse : nombre impair de retournements
       for (const g of f.rotations || []) {
         const c = Math.cos(g.a * Math.PI / 180), s = Math.sin(g.a * Math.PI / 180);
         const dx = x + w / 2 - g.cx, dy = y + h / 2 - g.cy;
-        x = g.cx + dx * c - dy * s - w / 2; y = g.cy + dx * s + dy * c - h / 2;
+        let nx = dx * c - dy * s, ny = dx * s + dy * c;
         rotGroupe += g.a;
+        if (g.fh) { nx = -nx; retH = !retH; }
+        if (g.fv) { ny = -ny; retV = !retV; }
+        if (g.fh !== g.fv) { rotGroupe = -rotGroupe; inverse = !inverse; }
+        x = g.cx + nx - w / 2; y = g.cy + ny - h / 2;
       }
       const o = { id: nouvelId(), x: mm(x), y: mm(y), w: mm(w), h: mm(h), _z: f.ordre || 0 };
       if (rot) o.rot = Math.round(rot * 100) / 100;
@@ -1003,7 +1033,10 @@
       // Office tourne la forme puis la retourne ; l'affichage retourne puis tourne : un retournement dans un seul sens
       // inverse donc le sens de rotation (vérifié sur un secteur de diagramme circulaire, nov. 2026)
       if (o.rot && !o.miroirH !== !o.miroirV) o.rot = Math.round((360 - rot) % 360 * 100) / 100;
-      if (rotGroupe) { const r2 = Math.round(((o.rot || 0) + rotGroupe) % 360 * 100) / 100; if (r2) o.rot = r2; else delete o.rot; }
+      if (inverse && o.rot) o.rot = Math.round((360 - o.rot) % 360 * 100) / 100;
+      if (retH) { if (o.miroirH) delete o.miroirH; else o.miroirH = true; }
+      if (retV) { if (o.miroirV) delete o.miroirV; else o.miroirV = true; }
+      if (rotGroupe) { const r2 = Math.round((((o.rot || 0) + rotGroupe) % 360 + 360) % 360 * 100) / 100; if (r2) o.rot = r2; else delete o.rot; }
       void ch;
       return o;
     }
@@ -1117,6 +1150,47 @@
       202: 'rect', 75: 'rect', 201: 'rect', 136: 'rect', 0: 'libre'
     };
 
+    let bordures = null;
+    function bordureDecorative(ch, props) {
+      if (!ch.has(0x9) || ch.get(0x9).val == null) return null;
+      if (!bordures) {
+        bordures = [];
+        const seq = Object.keys(chunks).find(k => chunks[k] && chunks[k].type === 0x46);
+        const tb = seq != null ? blocsDe(+seq) : null;
+        if (tb && tb.has(0x2)) bordures = sousBlocs(dv, tb.get(0x2)).map(e => {
+          const m = carte(sousBlocs(dv, e));
+          if (!m.has(0xa) || !m.has(0x8)) return null;
+          const z = m.get(0x3);
+          let nom = '';
+          if (z) for (let q = z.off + 4; q + 1 < z.fin; q += 2) { const k = dv.getUint16(q, true); if (!k) break; nom += String.fromCharCode(k); }
+          // 8 places (coin haut gauche, puis sens horaire) → dessin, désigné par sa position dans la liste
+          const zone = m.get(0xa);
+          const dessins = new Map();
+          for (const d of sousBlocs(dv, zone)) {
+            const im = sousBlocs(dv, d).find(x => x.id === 1 && x.varia);
+            if (im) dessins.set(d.off - zone.off, im);
+          }
+          const positions = sousBlocs(dv, m.get(0x8)).map(x => x.val);
+          const cles = [...dessins.keys()].sort((a, b) => a - b);
+          const images8 = positions.map(p => {
+            // la position compte depuis l'en-tête de la liste : on prend le dessin le plus proche
+            const k = cles.reduce((x, y) => (Math.abs(y - (p - positions[0] + cles[0])) < Math.abs(x - (p - positions[0] + cles[0])) ? y : x), cles[0]);
+            const im = dessins.get(k);
+            if (!im) return null;
+            if (!im.ref) {
+              im.ref = 'img' + (++nImg);
+              images[im.ref] = 'data:image/x-wmf;base64,' + enBase64(new Uint8Array(dv.buffer, dv.byteOffset + im.off + 4, im.fin - im.off - 4));
+            }
+            return im.ref;
+          });
+          return images8.length === 8 && images8.every(Boolean) ? { nom: nom || 'Bordure', images: images8 } : null;
+        });
+      }
+      const b = bordures[ch.get(0x9).val];
+      const e = val(props, 0x1cb, 0);
+      return b && e > 25400 ? { nom: b.nom, images: [...b.images], taille: mm(e) } : null;
+    }
+
     // ---- une forme (et ses enfants s'il s'agit d'un groupe) ----
     function construire(seq, groupe, sortie) {
       const c = chunks[seq];
@@ -1185,6 +1259,20 @@
       if (forme === 'libre') {
         const g = geometrie(props);
         if (g && g.pts.length) o.geometrie = g; else o.forme = 'rect';
+        // arc de l'ellipse du cadre + rayons vers le centre = secteur : on garde ses angles (retournements inclus)
+        if (g && g.pts.length === 5 && g.segs.join() === '41732,1,24577,32768') {
+          const [gl, gt, gr, gb] = g.cadre, [p1, p2, d, e, c] = g.pts;
+          const cx = (gl + gr) / 2, cy = (gt + gb) / 2;
+          if (p1[0] === gl && p1[1] === gt && p2[0] === gr && p2[1] === gb && Math.abs(c[0] - cx) < 5 && Math.abs(c[1] - cy) < 5) {
+            const ang = q => Math.atan2((q[1] - cy) / (gb - gt), (q[0] - cx) / (gr - gl)) * 180 / Math.PI;
+            let [deb, fin] = [ang(e), ang(d)]; // l'arc va de d à e en sens inverse : donc de e à d dans le sens horaire
+            if (o.miroirH) { [deb, fin] = [180 - fin, 180 - deb]; delete o.miroirH; }
+            if (o.miroirV) { [deb, fin] = [-fin, -deb]; delete o.miroirV; }
+            o.forme = 'secteur';
+            o.angles = [deb, fin].map(x => Math.round(((x % 360) + 360) % 360 * 100) / 100);
+            delete o.geometrie;
+          }
+        }
       }
       if (forme === 'ligne') {
         o.type = 'ligne';
@@ -1200,6 +1288,8 @@
       if (fr && !(f.stype === 202 && val(props, 0x1bf, null) == null)) o.fond = fr;
       const tr = trait(props, f.stype !== 202);
       if (tr) o.trait = tr;
+      const bd = bordureDecorative(ch, props);
+      if (bd) { o.bordure = bd; delete o.trait; }
       const om = ombrePortee(props);
       if (om) o.ombre = om;
       if (o.type === 'texte') {
@@ -1279,7 +1369,7 @@
     };
   }
 
-  const api = { lirePub, lireCFB };
+  const api = { lirePub, lireCFB, SYMBOL };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else racine.LecteurPub = api;
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -295,6 +295,7 @@ async function convertirMetafichiers() {
       const [ha, dr, ba, ga] = o.rognage || [0, 0, 0, 0];
       tailles[o.image] = { w: o.w / Math.max(0.05, 1 - ga - dr), h: o.h / Math.max(0.05, 1 - ha - ba) };
     }
+    if (o.bordure) for (const k of o.bordure.images) tailles[k] = { px: 56 };
   }
   for (const k of refs) {
     try { const png = await LecteurMeta.versPNG(E.fiche.images[k], tailles[k]); if (png) { E.fiche.images[k] = png; n++; } }

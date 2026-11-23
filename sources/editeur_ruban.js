@@ -27,7 +27,7 @@ function construireRuban() {
         lig(`<select id="c-police" class="champ" style="width:150px" title="Police">${POLICES.map(p => `<option value="${p}" style="font-family:'${p}'">${p}</option>`).join('')}</select>`,
           `<input id="c-taille" class="champ" style="width:46px" list="l-tailles" title="Taille de police"><datalist id="l-tailles">${tailles}</datalist>`,
           petit('agrandir', 'agrandir', '', { titre: 'Augmenter la taille de police' }), petit('reduire', 'reduire', '', { titre: 'Réduire la taille de police' })),
-        lig(lettre('gras', 'G', '', 'Gras (Ctrl+B)'), lettre('italique', 'I', 'i', 'Italique (Ctrl+I)'), lettre('souligne', 'S', 'u', 'Souligné (Ctrl+U)'),
+        lig(lettre('gras', 'G', '', 'Gras (Ctrl+B)'), lettre('italique', 'I', 'i', 'Italique (Ctrl+I)'), lettre('souligne', 'S', 'u', 'Souligné (Ctrl+U)'), lettre('petitesCapitales', 'Aᴀ', '', 'Petites capitales'),
           petit('exposant', 'exposant', '', { titre: 'Exposant' }), petit('indice', 'indice', '', { titre: 'Indice' }),
           `<button class="btn couleur" data-menu="couleurTexte" title="Couleur de police">${ic('couleurTexte')}<span class="barre-couleur" id="barre-couleur-texte" style="background:#c00000"></span></button>`,
           petit('effacer', 'effacerFormat', '', { titre: 'Effacer la mise en forme' }), petit('', 'espacement', '', { menu: 'espacement', titre: 'Espacement des caractères' })))) +
@@ -353,7 +353,7 @@ function menuCouleur(b, surChoix, opt = {}) {
 }
 
 const FORMES_GALERIE = [
-  ['ligne', 'Trait'], ['fleche', 'Flèche'], ['rect', 'Rectangle'], ['rectArrondi', 'Rectangle arrondi'], ['ellipse', 'Ellipse'], ['triangle', 'Triangle'],
+  ['ligne', 'Trait'], ['fleche', 'Flèche'], ['rect', 'Rectangle'], ['rectArrondi', 'Rectangle arrondi'], ['ellipse', 'Ellipse'], ['secteur', 'Secteur (diagramme circulaire)'], ['triangle', 'Triangle'],
   ['triangleRect', 'Triangle rectangle'], ['losange', 'Losange'], ['parallelogramme', 'Parallélogramme'], ['trapeze', 'Trapèze'], ['pentagone', 'Pentagone'], ['hexagone', 'Hexagone'],
   ['octogone', 'Octogone'], ['plus', 'Croix'], ['etoile4', 'Étoile à 4 branches'], ['etoile5', 'Étoile à 5 branches'], ['etoile8', 'Étoile à 8 branches'], ['explosion', 'Explosion'],
   ['flecheD', 'Flèche droite'], ['flecheG', 'Flèche gauche'], ['flecheH', 'Flèche haut'], ['flecheB', 'Flèche bas'], ['flecheGD', 'Double flèche'], ['chevron', 'Chevron'],
@@ -506,6 +506,7 @@ function ouvrirMenuNomme(nom, b) {
 function menuContour(b, surFormes) {
   const items = [
     { lib: 'Couleur du contour…', ic: 'contour', act: () => menuCouleur(b, c => surFormes(o => { if (o.type === 'wordart') { if (c) o.wordart.contour = Object.assign({ epaisseur: 0.75 }, o.wordart.contour, { couleur: c }); else delete o.wordart.contour; } else if (c) o.trait = Object.assign({ epaisseur: 0.75 }, o.trait, { couleur: c }); else if (o.type !== 'ligne') delete o.trait; }), { aucun: 'Aucun contour' }) },
+    { lib: 'Bordure décorative…', act: () => boiteBordure() },
     { titre: 'Épaisseur' }
   ];
   for (const e of [0.25, 0.5, 0.75, 1, 1.5, 2.25, 3, 4.5, 6]) items.push({ lib: String(e).replace('.', ',') + ' pt', act: () => surFormes(o => { const t = o.type === 'wordart' ? (o.wordart.contour = o.wordart.contour || { couleur: '#000000' }) : (o.trait = o.trait || { couleur: '#000000' }); t.epaisseur = e; }) });

@@ -399,3 +399,13 @@ body.tactile .sep-lig { height: 18px; margin-top: -6px; }
 .grille-motifs svg, #mo-apercu svg { border: 1px solid #bbb; }
 #mo-apercu { line-height: 0; display: flex; }
 #mo-apercu svg { border: 0; }
+
+/* secteur, bordures décoratives */
+.poignee.p-angle { width: 11px; height: 11px; margin: -6px 0 0 -6px; background: #ffd54a; border-color: #7a5c00; cursor: crosshair; border-radius: 2px; transform: rotate(45deg); }
+body.tactile .poignee.p-angle { width: 20px; height: 20px; margin: -10px 0 0 -10px; }
+.grille-bordures { display: grid; grid-template-columns: repeat(4, 112px); gap: 6px; max-height: 46vh; overflow: auto; padding: 2px; }
+.grille-bordures button { padding: 6px 4px; border: 2px solid transparent; background: none; cursor: pointer; text-align: center; }
+.grille-bordures button:hover { border-color: #a9c3dd; }
+.grille-bordures button[aria-selected="true"] { border-color: var(--vert); }
+.apercu-bordure { display: flex; justify-content: center; margin-bottom: 3px; }
+.apercu-bordure img { width: 18px; height: 18px; }

@@ -1,5 +1,12 @@
 # Nouveautés de PageLibre
 
+## 1.2.0 (23/11/2026)
+
+- Nouveau : petites capitales (Accueil), secteurs de diagramme avec poignées jaunes pour les angles (Formes), bordures décoratives (Contour).
+- Fichiers .pub : bordures décoratives et secteurs repris et modifiables ; groupes retournés.
+- Le texte est en retrait de l’épaisseur de la bordure, comme dans l’application d’origine ; lignes contenant σ à la bonne hauteur.
+- Retourner un groupe le retourne d’un bloc.
+
 ## 1.1.3 (23/11/2026)
 
 - Nouveau : remplissage à motif (hachures, trames, quadrillages…) pour les formes, les zones de texte et les cellules : Format › Motif.

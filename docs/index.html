@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-9q/Rgqg/yU6CSKqAsC8DgeulSnaYU2sRBMo+l+AQhzI='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' data: blob:; worker-src 'self' blob:; media-src 'self' data: blob:; object-src 'none'; base-uri 'none'; form-action 'none'; frame-src 'none'; manifest-src 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-B2AybKKMss1/e1U7cNQNqE8O5TGC4cUsPHfmkazgyIQ='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' data: blob:; worker-src 'self' blob:; media-src 'self' data: blob:; object-src 'none'; base-uri 'none'; form-action 'none'; frame-src 'none'; manifest-src 'self'">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>PageLibre</title>
 <meta name="description" content="PageLibre : logiciel libre et gratuit de mise en page (affiches, fiches, brochures), dans le navigateur. Ouvre aussi les anciens fichiers .pub.">
@@ -600,6 +600,16 @@ body.tactile .sep-lig { height: 18px; margin-top: -6px; }
 #mo-apercu { line-height: 0; display: flex; }
 #mo-apercu svg { border: 0; }
 
+/* secteur, bordures décoratives */
+.poignee.p-angle { width: 11px; height: 11px; margin: -6px 0 0 -6px; background: #ffd54a; border-color: #7a5c00; cursor: crosshair; border-radius: 2px; transform: rotate(45deg); }
+body.tactile .poignee.p-angle { width: 20px; height: 20px; margin: -10px 0 0 -10px; }
+.grille-bordures { display: grid; grid-template-columns: repeat(4, 112px); gap: 6px; max-height: 46vh; overflow: auto; padding: 2px; }
+.grille-bordures button { padding: 6px 4px; border: 2px solid transparent; background: none; cursor: pointer; text-align: center; }
+.grille-bordures button:hover { border-color: #a9c3dd; }
+.grille-bordures button[aria-selected="true"] { border-color: var(--vert); }
+.apercu-bordure { display: flex; justify-content: center; margin-bottom: 3px; }
+.apercu-bordure img { width: 18px; height: 18px; }
+
 </style>
 </head>
 <body>
@@ -690,8 +700,8 @@ body.tactile .sep-lig { height: 18px; margin-top: -6px; }
 
 <script id="fiche-integree" type="application/json">null</script>
 <script>
-const VERSION_EDITEUR = '2026-11-23T18:27';
-const VERSION_NOM = '1.1.3';
+const VERSION_EDITEUR = '2026-11-23T19:21';
+const VERSION_NOM = '1.2.0';
 const DEPOT_URL = "https://github.com/Pagelibre/pagelibre.github.io";
 const LIEN_SOUTIEN = "";
 const LOGO_SVG = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\">\n  <rect width=\"64\" height=\"64\" rx=\"14\" fill=\"#23405e\"/>\n  <path d=\"M18 10h20l11 11v31a3 3 0 0 1-3 3H18a3 3 0 0 1-3-3V13a3 3 0 0 1 3-3z\" fill=\"#ffffff\"/>\n  <path d=\"M38 10v8a3 3 0 0 0 3 3h8z\" fill=\"#c9d8e8\"/>\n  <rect x=\"20\" y=\"25\" width=\"12\" height=\"10\" rx=\"1.5\" fill=\"#f2b705\"/>\n  <path d=\"M35.5 27h8.5M35.5 32h8.5M20.5 40h23.5M20.5 45h23.5M20.5 50h15\" stroke=\"#23405e\" stroke-width=\"2.4\" stroke-linecap=\"round\"/>\n</svg>";
@@ -1097,10 +1107,11 @@ function assainirFiche(f) {
               // les enfants sont placés dans le cadre non tourné, puis tournent autour du centre du groupe
               let a = f.props[4] ? (f.props[4].val | 0) / 65536 % 360 : 0;
               if (a < 0) a += 360;
-              if (a) {
+              const fh = !!(f.flags & 0x40), fv = !!(f.flags & 0x80);
+              if (a || fh || fv) {
                 const cx = rg.x + rg.w / 2, cy = rg.y + rg.h / 2;
                 if ((a >= 45 && a < 135) || (a >= 225 && a < 315)) rg = { x: cx - rg.h / 2, y: cy - rg.w / 2, w: rg.h, h: rg.w };
-                rotationsEnfants = [{ cx, cy, a }, ...(rotations || [])];
+                rotationsEnfants = [{ cx, cy, a, fh, fv }, ...(rotations || [])];
               }
               transfoEnfants = { ax: rg.x, ay: rg.y, gx: g[0], gy: g[1], sx: rg.w / gw, sy: rg.h / gh };
             } else {
@@ -1396,7 +1407,7 @@ function assainirFiche(f) {
   function cssCar(s, base) {
     const st = [];
     const police = s.police || base.police;
-    if (police) st.push(`font-family:'${police.replace(/'/g, '')}'`);
+    if (police) st.push(/^symbol$/i.test(police) ? "font-family:'Symbol','Times New Roman'" : `font-family:'${police.replace(/'/g, '')}'`);
     const taille = s.taille || base.taille;
     if (taille) st.push(`font-size:${taille}pt`);
     if (s.gras) st.push('font-weight:bold');
@@ -1409,6 +1420,22 @@ function assainirFiche(f) {
     return st.join(';');
   }
 
+  // police Symbol → vrais caractères (équations et texte) : « s » y vaut σ, « å » vaut Σ…
+  const SYMBOL = (() => {
+    const t = {};
+    const grec = 'ΑΒΧΔΕΦΓΗΙϑΚΛΜΝΟΠΘΡΣΤΥςΩΞΨΖ', grecMin = 'αβχδεφγηιϕκλμνοπθρστυϖωξψζ';
+    for (let i = 0; i < 26; i++) { t[65 + i] = grec[i]; t[97 + i] = grecMin[i]; }
+    Object.assign(t, { 0x22: '∀', 0x24: '∃', 0x27: '∋', 0x2A: '∗', 0x2D: '−', 0x40: '≅', 0x5C: '∴', 0x5E: '⊥', 0x60: '‾',
+      0xA1: 'ϒ', 0xA2: '′', 0xA3: '≤', 0xA4: '⁄', 0xA5: '∞', 0xA6: 'ƒ', 0xA7: '♣', 0xA8: '♦', 0xA9: '♥', 0xAA: '♠', 0xAB: '↔', 0xAC: '←', 0xAD: '↑', 0xAE: '→', 0xAF: '↓',
+      0xB0: '°', 0xB1: '±', 0xB2: '″', 0xB3: '≥', 0xB4: '×', 0xB5: '∝', 0xB6: '∂', 0xB7: '•', 0xB8: '÷', 0xB9: '≠', 0xBA: '≡', 0xBB: '≈', 0xBC: '…', 0xBD: '⏐', 0xBE: '⎯', 0xBF: '↵',
+      0xC0: 'ℵ', 0xC1: 'ℑ', 0xC2: 'ℜ', 0xC3: '℘', 0xC4: '⊗', 0xC5: '⊕', 0xC6: '∅', 0xC7: '∩', 0xC8: '∪', 0xC9: '⊃', 0xCA: '⊇', 0xCB: '⊄', 0xCC: '⊂', 0xCD: '⊆', 0xCE: '∈', 0xCF: '∉',
+      0xD0: '∠', 0xD1: '∇', 0xD2: '®', 0xD3: '©', 0xD4: '™', 0xD5: '∏', 0xD6: '√', 0xD7: '⋅', 0xD8: '¬', 0xD9: '∧', 0xDA: '∨', 0xDB: '⇔', 0xDC: '⇐', 0xDD: '⇑', 0xDE: '⇒', 0xDF: '⇓',
+      0xE0: '◊', 0xE1: '〈', 0xE2: '®', 0xE3: '©', 0xE4: '™', 0xE5: '∑', 0xE6: '⎛', 0xE7: '⎜', 0xE8: '⎝', 0xE9: '⎡', 0xEA: '⎢', 0xEB: '⎣', 0xEC: '⎧', 0xED: '⎨', 0xEE: '⎩', 0xEF: '⎪',
+      0xF1: '〉', 0xF2: '∫', 0xF3: '⌠', 0xF4: '⎮', 0xF5: '⌡', 0xF6: '⎞', 0xF7: '⎟', 0xF8: '⎠', 0xF9: '⎤', 0xFA: '⎥', 0xFB: '⎦', 0xFC: '⎫', 0xFD: '⎬', 0xFE: '⎭' });
+    return t;
+  })();
+  const enSymbole = s => [...s].map(c => { const u = c.charCodeAt(0), k = u >= 0xf000 && u <= 0xf0ff ? u - 0xf000 : u; return SYMBOL[k] || c; }).join('');
+
   // hauteur de ligne naturelle des polices courantes (en fraction de la taille), pour les paragraphes à interligne réglé (0x34)
   const RATIO_POLICE = { 'calibri': 1.221, 'calibri light': 1.221, 'cambria': 1.172, 'arial': 1.149, 'arial black': 1.41, 'arial narrow': 1.149, 'times new roman': 1.15,
     'verdana': 1.215, 'tahoma': 1.207, 'georgia': 1.136, 'segoe ui': 1.33, 'comic sans ms': 1.394, 'trebuchet ms': 1.161, 'courier new': 1.133,
@@ -1417,7 +1444,7 @@ function assainirFiche(f) {
   // les marges donne 1,059 sur 700 cellules et 1,043 en gras sur 158 (confirmé par le PDF ; le navigateur donne 1,15).
   // Aucune règle générale trouvée : Matura MT suit les mesures Windows (1,331), pas Times.
   // N'ajouter ici que des polices mesurées ainsi ; les autres gardent la hauteur naturelle du navigateur.
-  const PAS_MESURE = { 'times new roman': [1.059, 1.043] };
+  const PAS_MESURE = { 'times new roman': [1.059, 1.043], 'symbol': [1.225, 1.225], 'wingdings 3': [1.139, 1.139] };
   const ratioPolice = n => RATIO_POLICE[(n || '').toLowerCase()] || 1.15;
 
   function cssPar(p, police, taille, gras) {
@@ -1481,6 +1508,7 @@ function assainirFiche(f) {
         let q = t.indexOf('\r', p);
         if (q < 0 || q >= fin) q = fin;
         const ps = sPar(runA(Q.runsPar, Math.max(p, q === fin ? p : q)));
+        const morceaux = [];
         let contenu = '';
         let tailleMax = 0;
         let sDom = null, nDom = -1; // style du plus long morceau du paragraphe (et non du premier caractère, souvent une puce)
@@ -1493,11 +1521,19 @@ function assainirFiche(f) {
           tailleMax = Math.max(tailleMax, s.taille || base.taille);
           let morceau = t.slice(i, finRun)
             .replace(/[\u0000-\u0008\u000c\u000e-\u001f]/g, '');
+          if (/^symbol$/i.test(s.police || '')) morceau = enSymbole(morceau);
           morceau = echapper(morceau).replace(/\u000b/g, '<br>');
-          const nm = morceau.replace(/s/g, '').length;
+          const nm = morceau.replace(/\s/g, '').length;
           if (nm > nDom) { nDom = nm; sDom = s; }
-          if (morceau) contenu += `<span style="${cssCar(s, base)}">${morceau}</span>`;
+          if (morceau) morceaux.push([s, morceau]);
           i = finRun;
+        }
+        const dom = (sDom && sDom.police) || base.police;
+        for (const [s, morceau] of morceaux) {
+          const pol = s.police || base.police;
+          const autre = pol !== dom && PAS_MESURE[(dom || '').toLowerCase()] && !ps.interligne && !ps.interligneP && !s.exposant && !s.indice; // polices mesurées seulement
+          const pm = PAS_MESURE[(pol || '').toLowerCase()];
+          contenu += `<span style="${cssCar(s, base)}${autre && pm ? ';line-height:' + pm[s.gras ? 1 : 0] : ''}">${morceau}</span>`;
         }
         // caractère de fin de paragraphe : donne la taille d'une ligne vide
         const sFin = sCar(runA(Q.runsCar, q < fin ? q : Math.max(p, q - 1)));
@@ -1761,12 +1797,16 @@ function assainirFiche(f) {
         x = cx - w / 2; y = cy - h / 2;
       }
       // rotation des groupes : le centre tourne autour de celui du groupe, et la forme tourne d'autant
-      let rotGroupe = 0;
+      let rotGroupe = 0, retH = false, retV = false, inverse = false; // inverse : nombre impair de retournements
       for (const g of f.rotations || []) {
         const c = Math.cos(g.a * Math.PI / 180), s = Math.sin(g.a * Math.PI / 180);
         const dx = x + w / 2 - g.cx, dy = y + h / 2 - g.cy;
-        x = g.cx + dx * c - dy * s - w / 2; y = g.cy + dx * s + dy * c - h / 2;
+        let nx = dx * c - dy * s, ny = dx * s + dy * c;
         rotGroupe += g.a;
+        if (g.fh) { nx = -nx; retH = !retH; }
+        if (g.fv) { ny = -ny; retV = !retV; }
+        if (g.fh !== g.fv) { rotGroupe = -rotGroupe; inverse = !inverse; }
+        x = g.cx + nx - w / 2; y = g.cy + ny - h / 2;
       }
       const o = { id: nouvelId(), x: mm(x), y: mm(y), w: mm(w), h: mm(h), _z: f.ordre || 0 };
       if (rot) o.rot = Math.round(rot * 100) / 100;
@@ -1775,7 +1815,10 @@ function assainirFiche(f) {
       // Office tourne la forme puis la retourne ; l'affichage retourne puis tourne : un retournement dans un seul sens
       // inverse donc le sens de rotation (vérifié sur un secteur de diagramme circulaire, nov. 2026)
       if (o.rot && !o.miroirH !== !o.miroirV) o.rot = Math.round((360 - rot) % 360 * 100) / 100;
-      if (rotGroupe) { const r2 = Math.round(((o.rot || 0) + rotGroupe) % 360 * 100) / 100; if (r2) o.rot = r2; else delete o.rot; }
+      if (inverse && o.rot) o.rot = Math.round((360 - o.rot) % 360 * 100) / 100;
+      if (retH) { if (o.miroirH) delete o.miroirH; else o.miroirH = true; }
+      if (retV) { if (o.miroirV) delete o.miroirV; else o.miroirV = true; }
+      if (rotGroupe) { const r2 = Math.round((((o.rot || 0) + rotGroupe) % 360 + 360) % 360 * 100) / 100; if (r2) o.rot = r2; else delete o.rot; }
       void ch;
       return o;
     }
@@ -1889,6 +1932,47 @@ function assainirFiche(f) {
       202: 'rect', 75: 'rect', 201: 'rect', 136: 'rect', 0: 'libre'
     };
 
+    let bordures = null;
+    function bordureDecorative(ch, props) {
+      if (!ch.has(0x9) || ch.get(0x9).val == null) return null;
+      if (!bordures) {
+        bordures = [];
+        const seq = Object.keys(chunks).find(k => chunks[k] && chunks[k].type === 0x46);
+        const tb = seq != null ? blocsDe(+seq) : null;
+        if (tb && tb.has(0x2)) bordures = sousBlocs(dv, tb.get(0x2)).map(e => {
+          const m = carte(sousBlocs(dv, e));
+          if (!m.has(0xa) || !m.has(0x8)) return null;
+          const z = m.get(0x3);
+          let nom = '';
+          if (z) for (let q = z.off + 4; q + 1 < z.fin; q += 2) { const k = dv.getUint16(q, true); if (!k) break; nom += String.fromCharCode(k); }
+          // 8 places (coin haut gauche, puis sens horaire) → dessin, désigné par sa position dans la liste
+          const zone = m.get(0xa);
+          const dessins = new Map();
+          for (const d of sousBlocs(dv, zone)) {
+            const im = sousBlocs(dv, d).find(x => x.id === 1 && x.varia);
+            if (im) dessins.set(d.off - zone.off, im);
+          }
+          const positions = sousBlocs(dv, m.get(0x8)).map(x => x.val);
+          const cles = [...dessins.keys()].sort((a, b) => a - b);
+          const images8 = positions.map(p => {
+            // la position compte depuis l'en-tête de la liste : on prend le dessin le plus proche
+            const k = cles.reduce((x, y) => (Math.abs(y - (p - positions[0] + cles[0])) < Math.abs(x - (p - positions[0] + cles[0])) ? y : x), cles[0]);
+            const im = dessins.get(k);
+            if (!im) return null;
+            if (!im.ref) {
+              im.ref = 'img' + (++nImg);
+              images[im.ref] = 'data:image/x-wmf;base64,' + enBase64(new Uint8Array(dv.buffer, dv.byteOffset + im.off + 4, im.fin - im.off - 4));
+            }
+            return im.ref;
+          });
+          return images8.length === 8 && images8.every(Boolean) ? { nom: nom || 'Bordure', images: images8 } : null;
+        });
+      }
+      const b = bordures[ch.get(0x9).val];
+      const e = val(props, 0x1cb, 0);
+      return b && e > 25400 ? { nom: b.nom, images: [...b.images], taille: mm(e) } : null;
+    }
+
     // ---- une forme (et ses enfants s'il s'agit d'un groupe) ----
     function construire(seq, groupe, sortie) {
       const c = chunks[seq];
@@ -1957,6 +2041,20 @@ function assainirFiche(f) {
       if (forme === 'libre') {
         const g = geometrie(props);
         if (g && g.pts.length) o.geometrie = g; else o.forme = 'rect';
+        // arc de l'ellipse du cadre + rayons vers le centre = secteur : on garde ses angles (retournements inclus)
+        if (g && g.pts.length === 5 && g.segs.join() === '41732,1,24577,32768') {
+          const [gl, gt, gr, gb] = g.cadre, [p1, p2, d, e, c] = g.pts;
+          const cx = (gl + gr) / 2, cy = (gt + gb) / 2;
+          if (p1[0] === gl && p1[1] === gt && p2[0] === gr && p2[1] === gb && Math.abs(c[0] - cx) < 5 && Math.abs(c[1] - cy) < 5) {
+            const ang = q => Math.atan2((q[1] - cy) / (gb - gt), (q[0] - cx) / (gr - gl)) * 180 / Math.PI;
+            let [deb, fin] = [ang(e), ang(d)]; // l'arc va de d à e en sens inverse : donc de e à d dans le sens horaire
+            if (o.miroirH) { [deb, fin] = [180 - fin, 180 - deb]; delete o.miroirH; }
+            if (o.miroirV) { [deb, fin] = [-fin, -deb]; delete o.miroirV; }
+            o.forme = 'secteur';
+            o.angles = [deb, fin].map(x => Math.round(((x % 360) + 360) % 360 * 100) / 100);
+            delete o.geometrie;
+          }
+        }
       }
       if (forme === 'ligne') {
         o.type = 'ligne';
@@ -1972,6 +2070,8 @@ function assainirFiche(f) {
       if (fr && !(f.stype === 202 && val(props, 0x1bf, null) == null)) o.fond = fr;
       const tr = trait(props, f.stype !== 202);
       if (tr) o.trait = tr;
+      const bd = bordureDecorative(ch, props);
+      if (bd) { o.bordure = bd; delete o.trait; }
       const om = ombrePortee(props);
       if (om) o.ombre = om;
       if (o.type === 'texte') {
@@ -2051,7 +2151,7 @@ function assainirFiche(f) {
     };
   }
 
-  const api = { lirePub, lireCFB };
+  const api = { lirePub, lireCFB, SYMBOL };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else racine.LecteurPub = api;
 })(typeof window !== 'undefined' ? window : globalThis);
@@ -2094,6 +2194,12 @@ function assainirFiche(f) {
     switch (o.forme) {
       case 'ellipse': return `M0 ${f2(h / 2)}A${f2(w / 2)} ${f2(h / 2)} 0 1 0 ${f2(w)} ${f2(h / 2)}A${f2(w / 2)} ${f2(h / 2)} 0 1 0 0 ${f2(h / 2)}Z`;
       case 'rectArrondi': case 'parchemin': return rectArrondi(w, h, Math.min(w, h) * A(3600));
+      case 'secteur': {
+        const [d0, d1] = o.angles || [0, 270], rx = w / 2, ry = h / 2, bal = ((d1 - d0) % 360 + 360) % 360 || 360;
+        const pt = x => f2(rx + rx * Math.cos(x * Math.PI / 180)) + ' ' + f2(ry + ry * Math.sin(x * Math.PI / 180));
+        if (bal > 359.99) return `M${f2(w)} ${f2(ry)}A${f2(rx)} ${f2(ry)} 0 1 1 0 ${f2(ry)}A${f2(rx)} ${f2(ry)} 0 1 1 ${f2(w)} ${f2(ry)}Z`;
+        return `M${f2(rx)} ${f2(ry)}L${pt(d0)}A${f2(rx)} ${f2(ry)} 0 ${bal > 180 ? 1 : 0} 1 ${pt(d1)}Z`;
+      }
       case 'losange': return P([[w / 2, 0], [w, h / 2], [w / 2, h], [0, h / 2]]);
       case 'triangle': return P([[w * A(10800), 0], [w, h], [0, h]]);
       case 'triangleRect': return P([[0, 0], [w, h], [0, h]]);
@@ -2379,6 +2485,19 @@ function assainirFiche(f) {
     return c;
   }
 
+  // bordure décorative : 8 dessins (coin haut gauche, puis sens horaire), répétés le long des côtés
+  function bordureDecorative(o, fiche) {
+    const b = o.bordure, T = Math.min(b.taille, o.w / 2, o.h / 2);
+    const s = el('svg', { class: 'svg-forme bordure-deco', viewBox: `0 0 ${f2(o.w)} ${f2(o.h)}`, preserveAspectRatio: 'none' });
+    const im = (i, x, y, w, h) => { const u = fiche.images[b.images[i]]; if (u && !/^data:image\/x-/.test(u)) el('image', { href: u, x: f2(x), y: f2(y), width: f2(w), height: f2(h), preserveAspectRatio: 'none' }, s); };
+    const nx = Math.max(1, Math.round((o.w - 2 * T) / T)), ny = Math.max(1, Math.round((o.h - 2 * T) / T));
+    const px = (o.w - 2 * T) / nx, py = (o.h - 2 * T) / ny;
+    if (px > 0) for (let i = 0; i < Math.min(nx, 400); i++) { im(1, T + i * px, 0, px, T); im(5, T + i * px, o.h - T, px, T); }
+    if (py > 0) for (let i = 0; i < Math.min(ny, 400); i++) { im(3, o.w - T, T + i * py, T, py); im(7, 0, T + i * py, T, py); }
+    im(0, 0, 0, T, T); im(2, o.w - T, 0, T, T); im(4, o.w - T, o.h - T, T, T); im(6, 0, o.h - T, T, T);
+    return s;
+  }
+
   function biseauRect(o) {
     const b = document.createElement('div');
     b.className = 'biseau';
@@ -2624,6 +2743,7 @@ function assainirFiche(f) {
       if (c >= 2 && l.length - c >= 3 && !"'’-".includes(m[c - 1])) pos.push(c);
       i = j - 1;
     }
+    if (/^(satisf|caract|séries?$)/.test(l)) return pos.filter(c => c > 2);
     return pos;
   }
   function cesurer(z) {
@@ -2821,13 +2941,17 @@ function assainirFiche(f) {
         break;
       }
       case 'texte': case 'forme': {
-        if (o.fond || o.trait || o.type === 'forme') d.appendChild(svgForme(o, fiche, true));
+        if (o.fond || o.trait || o.type === 'forme') d.appendChild(svgForme(o.bordure ? Object.assign({}, o, { trait: null }) : o, fiche, true));
+        if (o.bordure) d.appendChild(bordureDecorative(o, fiche));
         if (o.type === 'texte' || o.html) {
           const m = o.marges || [2.54, 1.27, 2.54, 1.27];
           const cadre = document.createElement('div');
           cadre.className = 'cadre-texte v-' + (o.vertical || 'haut');
           if (o.sensTexte) cadre.classList.add('sens-' + o.sensTexte);
-          cadre.style.padding = `${m[1]}mm ${m[2]}mm ${m[3]}mm ${m[0]}mm`;
+          // comme dans l'application d'origine, le texte est en retrait de toute l'épaisseur de la bordure
+          // (mesuré sur 130 zones d'un PDF : 0,32 mm pour 1 pt, 0,67 mm pour 2 pt)
+          const eb = o.bordure ? o.bordure.taille : o.trait && o.type === 'texte' ? (o.trait.epaisseur || 0) * PT_MM : 0;
+          cadre.style.padding = m.map(x => x + eb).map(x => +x.toFixed(2)).map((x, i, l) => [l[1], l[2], l[3], l[0]][i] + 'mm').join(' ');
           const ct = contenuTexte(o.html);
           const z = o.ajustement && o.ajustement !== 1 ? o.ajustement : 1;
           if (z !== 1) ct.style.zoom = z;
@@ -3260,19 +3384,7 @@ function assainirFiche(f) {
   /* ---------- police Symbol → caractères Unicode ----------
      L'éditeur d'équations (Équation 3.0, MathType) écrit Σ, σ, ×, ≤… avec la police Symbol, où « å » vaut Σ.
      On les traduit en vrais caractères : ils s'affichent alors partout, même sans la police Symbol. */
-  const SYMBOL = (() => {
-    const t = {};
-    const grec = 'ΑΒΧΔΕΦΓΗΙϑΚΛΜΝΟΠΘΡΣΤΥςΩΞΨΖ', grecMin = 'αβχδεφγηιϕκλμνοπθρστυϖωξψζ';
-    for (let i = 0; i < 26; i++) { t[65 + i] = grec[i]; t[97 + i] = grecMin[i]; }
-    Object.assign(t, { 0x22: '∀', 0x24: '∃', 0x27: '∋', 0x2A: '∗', 0x2D: '−', 0x40: '≅', 0x5C: '∴', 0x5E: '⊥', 0x60: '‾',
-      0xA1: 'ϒ', 0xA2: '′', 0xA3: '≤', 0xA4: '⁄', 0xA5: '∞', 0xA6: 'ƒ', 0xA7: '♣', 0xA8: '♦', 0xA9: '♥', 0xAA: '♠', 0xAB: '↔', 0xAC: '←', 0xAD: '↑', 0xAE: '→', 0xAF: '↓',
-      0xB0: '°', 0xB1: '±', 0xB2: '″', 0xB3: '≥', 0xB4: '×', 0xB5: '∝', 0xB6: '∂', 0xB7: '•', 0xB8: '÷', 0xB9: '≠', 0xBA: '≡', 0xBB: '≈', 0xBC: '…', 0xBD: '⏐', 0xBE: '⎯', 0xBF: '↵',
-      0xC0: 'ℵ', 0xC1: 'ℑ', 0xC2: 'ℜ', 0xC3: '℘', 0xC4: '⊗', 0xC5: '⊕', 0xC6: '∅', 0xC7: '∩', 0xC8: '∪', 0xC9: '⊃', 0xCA: '⊇', 0xCB: '⊄', 0xCC: '⊂', 0xCD: '⊆', 0xCE: '∈', 0xCF: '∉',
-      0xD0: '∠', 0xD1: '∇', 0xD2: '®', 0xD3: '©', 0xD4: '™', 0xD5: '∏', 0xD6: '√', 0xD7: '⋅', 0xD8: '¬', 0xD9: '∧', 0xDA: '∨', 0xDB: '⇔', 0xDC: '⇐', 0xDD: '⇑', 0xDE: '⇒', 0xDF: '⇓',
-      0xE0: '◊', 0xE1: '〈', 0xE2: '®', 0xE3: '©', 0xE4: '™', 0xE5: '∑', 0xE6: '⎛', 0xE7: '⎜', 0xE8: '⎝', 0xE9: '⎡', 0xEA: '⎢', 0xEB: '⎣', 0xEC: '⎧', 0xED: '⎨', 0xEE: '⎩', 0xEF: '⎪',
-      0xF1: '〉', 0xF2: '∫', 0xF3: '⌠', 0xF4: '⎮', 0xF5: '⌡', 0xF6: '⎞', 0xF7: '⎟', 0xF8: '⎠', 0xF9: '⎤', 0xFA: '⎥', 0xFB: '⎦', 0xFC: '⎫', 0xFD: '⎬', 0xFE: '⎭' });
-    return t;
-  })();
+  const SYMBOL = (racine.LecteurPub || {}).SYMBOL || {}; // table commune, dans lecteur_pub.js
   const estSymbol = nom => /^symbol$/i.test(nom || '');
   // jeu de caractères d'une police WMF (lfCharSet) → page de codes Windows
   const PAGES_CODES = { 161: 'windows-1253', 162: 'windows-1254', 163: 'windows-1258', 177: 'windows-1255', 178: 'windows-1256', 186: 'windows-1257', 204: 'windows-1251', 222: 'windows-874', 238: 'windows-1250' };
@@ -3309,7 +3421,8 @@ function assainirFiche(f) {
     const W = Math.abs(S.wex) || 1, H = Math.abs(S.wey) || 1;
     const ratio = cible && cible.w > 0 && cible.h > 0 ? cible.w / cible.h : W / H;
     const c = document.createElement('canvas');
-    c.width = Math.max(1, Math.round(ratio >= 1 ? 1600 : 1600 * ratio)); c.height = Math.max(1, Math.round(ratio >= 1 ? 1600 / ratio : 1600));
+    const cote = (cible && cible.px) || 1600;
+    c.width = Math.max(1, Math.round(ratio >= 1 ? cote : cote * ratio)); c.height = Math.max(1, Math.round(ratio >= 1 ? cote / ratio : cote));
     const ctx = c.getContext('2d');
     const objets = [];
     const pile = [];
@@ -3968,6 +4081,7 @@ function cadreSel(o, opt) {
       bd.className = 'bord-sel bord-' + cote;
       d.appendChild(bd);
     }
+    if (o.forme === 'secteur') poigneesSecteur(o, d, k);
     const petit = o.w * k < 26 || o.h * k < 26;
     const pos = { nw: [0, 0], n: [50, 0], ne: [100, 0], e: [100, 50], se: [100, 100], s: [50, 100], sw: [0, 100], w: [0, 50] };
     for (const nom in pos) {
@@ -5045,6 +5159,8 @@ function demarrerPoignee(ev, nom) {
   const p0 = versMM(ev);
   if (nom === 'a' || nom === 'b') {
     G = { type: 'extremite', nom, id: objs[0].id, p0, actif: false };
+  } else if (/^angle[01]$/.test(nom)) {
+    G = gesteAngle(objs[0], +nom[5]);
   } else if (nom === 'rot') {
     const b = objs.length === 1 ? objs[0] : boiteEnglobante(objs);
     const c = { x: b.x + b.w / 2, y: b.y + b.h / 2 };
@@ -5706,6 +5822,7 @@ function retourner(sens) {
   const s = selection();
   if (!s.length) return;
   avant();
+  if (groupeEntier(s)) { retournerGroupe(s, sens); apres(); return; } // un groupe se retourne d'un bloc
   for (const o of s) {
     const k = sens === 'h' ? 'miroirH' : 'miroirV';
     if (o[k]) delete o[k]; else o[k] = true;
@@ -5786,6 +5903,7 @@ function surMenuContextuel(ev) {
     items.push({ lib: 'Couper', ic: 'couper', act: couper, rac: 'Ctrl+X' }, { lib: 'Copier', ic: 'copier', act: copier, rac: 'Ctrl+C' });
   }
   items.push({ lib: 'Coller', ic: 'coller', act: collerDepuisBouton, rac: 'Ctrl+V', off: !E.presse });
+  if (s.length === 1 && s[0].forme === 'secteur') items.push({ lib: 'Angles du secteur…', act: boiteAngles });
   if (s.length) {
     items.push({ lib: 'Dupliquer', ic: 'dupliquer', act: dupliquer, rac: 'Ctrl+D' },
       { lib: 'Supprimer l\'objet', ic: 'supprimer', act: supprimerSelection, rac: 'Suppr' }, '-');
@@ -5864,7 +5982,7 @@ function construireRuban() {
         lig(`<select id="c-police" class="champ" style="width:150px" title="Police">${POLICES.map(p => `<option value="${p}" style="font-family:'${p}'">${p}</option>`).join('')}</select>`,
           `<input id="c-taille" class="champ" style="width:46px" list="l-tailles" title="Taille de police"><datalist id="l-tailles">${tailles}</datalist>`,
           petit('agrandir', 'agrandir', '', { titre: 'Augmenter la taille de police' }), petit('reduire', 'reduire', '', { titre: 'Réduire la taille de police' })),
-        lig(lettre('gras', 'G', '', 'Gras (Ctrl+B)'), lettre('italique', 'I', 'i', 'Italique (Ctrl+I)'), lettre('souligne', 'S', 'u', 'Souligné (Ctrl+U)'),
+        lig(lettre('gras', 'G', '', 'Gras (Ctrl+B)'), lettre('italique', 'I', 'i', 'Italique (Ctrl+I)'), lettre('souligne', 'S', 'u', 'Souligné (Ctrl+U)'), lettre('petitesCapitales', 'Aᴀ', '', 'Petites capitales'),
           petit('exposant', 'exposant', '', { titre: 'Exposant' }), petit('indice', 'indice', '', { titre: 'Indice' }),
           `<button class="btn couleur" data-menu="couleurTexte" title="Couleur de police">${ic('couleurTexte')}<span class="barre-couleur" id="barre-couleur-texte" style="background:#c00000"></span></button>`,
           petit('effacer', 'effacerFormat', '', { titre: 'Effacer la mise en forme' }), petit('', 'espacement', '', { menu: 'espacement', titre: 'Espacement des caractères' })))) +
@@ -6190,7 +6308,7 @@ function menuCouleur(b, surChoix, opt = {}) {
 }
 
 const FORMES_GALERIE = [
-  ['ligne', 'Trait'], ['fleche', 'Flèche'], ['rect', 'Rectangle'], ['rectArrondi', 'Rectangle arrondi'], ['ellipse', 'Ellipse'], ['triangle', 'Triangle'],
+  ['ligne', 'Trait'], ['fleche', 'Flèche'], ['rect', 'Rectangle'], ['rectArrondi', 'Rectangle arrondi'], ['ellipse', 'Ellipse'], ['secteur', 'Secteur (diagramme circulaire)'], ['triangle', 'Triangle'],
   ['triangleRect', 'Triangle rectangle'], ['losange', 'Losange'], ['parallelogramme', 'Parallélogramme'], ['trapeze', 'Trapèze'], ['pentagone', 'Pentagone'], ['hexagone', 'Hexagone'],
   ['octogone', 'Octogone'], ['plus', 'Croix'], ['etoile4', 'Étoile à 4 branches'], ['etoile5', 'Étoile à 5 branches'], ['etoile8', 'Étoile à 8 branches'], ['explosion', 'Explosion'],
   ['flecheD', 'Flèche droite'], ['flecheG', 'Flèche gauche'], ['flecheH', 'Flèche haut'], ['flecheB', 'Flèche bas'], ['flecheGD', 'Double flèche'], ['chevron', 'Chevron'],
@@ -6343,6 +6461,7 @@ function ouvrirMenuNomme(nom, b) {
 function menuContour(b, surFormes) {
   const items = [
     { lib: 'Couleur du contour…', ic: 'contour', act: () => menuCouleur(b, c => surFormes(o => { if (o.type === 'wordart') { if (c) o.wordart.contour = Object.assign({ epaisseur: 0.75 }, o.wordart.contour, { couleur: c }); else delete o.wordart.contour; } else if (c) o.trait = Object.assign({ epaisseur: 0.75 }, o.trait, { couleur: c }); else if (o.type !== 'ligne') delete o.trait; }), { aucun: 'Aucun contour' }) },
+    { lib: 'Bordure décorative…', act: () => boiteBordure() },
     { titre: 'Épaisseur' }
   ];
   for (const e of [0.25, 0.5, 0.75, 1, 1.5, 2.25, 3, 4.5, 6]) items.push({ lib: String(e).replace('.', ',') + ' pt', act: () => surFormes(o => { const t = o.type === 'wordart' ? (o.wordart.contour = o.wordart.contour || { couleur: '#000000' }) : (o.trait = o.trait || { couleur: '#000000' }); t.epaisseur = e; }) });
@@ -7930,6 +8049,7 @@ async function convertirMetafichiers() {
       const [ha, dr, ba, ga] = o.rognage || [0, 0, 0, 0];
       tailles[o.image] = { w: o.w / Math.max(0.05, 1 - ga - dr), h: o.h / Math.max(0.05, 1 - ha - ba) };
     }
+    if (o.bordure) for (const k of o.bordure.images) tailles[k] = { px: 56 };
   }
   for (const k of refs) {
     try { const png = await LecteurMeta.versPNG(E.fiche.images[k], tailles[k]); if (png) { E.fiche.images[k] = png; n++; } }
@@ -8237,6 +8357,15 @@ function nouveauDepuisModele(cle) {
    Affichées une fois à la première ouverture d'une nouvelle version, et dans Fichier › Aide.
    Le numéro de version (VERSION_NOM) vient de depot/package.json : le changer à chaque publication. */
 const NOUVEAUTES = [
+  {
+    version: '1.2.0', date: '23/11/2026',
+    points: [
+      'Nouveau : petites capitales (Accueil), secteurs de diagramme avec poignées jaunes pour les angles (Formes), bordures décoratives (Contour).',
+      'Fichiers .pub : bordures décoratives et secteurs repris et modifiables ; groupes retournés.',
+      'Le texte est en retrait de l’épaisseur de la bordure, comme dans l’application d’origine ; lignes contenant σ à la bonne hauteur.',
+      'Retourner un groupe le retourne d’un bloc.'
+    ]
+  },
   {
     version: '1.1.3', date: '23/11/2026',
     points: [
@@ -9034,6 +9163,180 @@ function motifCellules() {
 }
 Object.assign(COMMANDES, { motif: motifFormes, motifCellules });
 
+/* ==== editeur_plus5.js ==== */
+/* =====================================================================
+   Cinquième série (23/11/2026) : ce qui était repris des .pub peut aussi être créé et modifié
+   - petites capitales ;
+   - secteur (diagramme circulaire) : poignées jaunes pour les angles ;
+   - bordures décoratives ;
+   - retournement d'un groupe entier (en miroir).
+   ===================================================================== */
+
+/* ---------------- petites capitales ---------------- */
+// enveloppe chaque morceau de texte sélectionné dans un span (sans toucher au reste de la mise en forme)
+function spansDeSelection(z) {
+  const s = window.getSelection();
+  if (!s.rangeCount) return [];
+  const r = s.getRangeAt(0);
+  const textes = [], tw = document.createTreeWalker(z, NodeFilter.SHOW_TEXT);
+  for (let t = tw.nextNode(); t; t = tw.nextNode()) if (r.intersectsNode(t) && !t.parentElement.closest('.puce,.champ-page')) textes.push(t);
+  const out = [];
+  for (let t of textes) {
+    let a = t === r.startContainer ? r.startOffset : 0, b = t === r.endContainer ? r.endOffset : t.length;
+    if (a >= b) continue;
+    if (b < t.length) t.splitText(b);
+    if (a > 0) t = t.splitText(a);
+    const p = t.parentElement;
+    if (p.tagName === 'SPAN' && p.childNodes.length === 1 && !p.classList.contains('contenu')) { out.push(p); continue; }
+    const sp = document.createElement('span');
+    t.replaceWith(sp);
+    sp.appendChild(t);
+    out.push(sp);
+  }
+  if (out.length) { const n = document.createRange(); n.setStartBefore(out[0]); n.setEndAfter(out[out.length - 1]); s.removeAllRanges(); s.addRange(n); }
+  return out;
+}
+function petitesCapitales() {
+  appliquerTexte(z => {
+    const l = spansDeSelection(z);
+    const toutes = l.length && l.every(x => getComputedStyle(x).fontVariantCaps === 'small-caps');
+    for (const x of l) {
+      x.querySelectorAll('[style*="font-variant"]').forEach(y => y.style.removeProperty('font-variant'));
+      x.style.fontVariant = toutes ? 'normal' : 'small-caps';
+      if (toutes && getComputedStyle(x.parentElement).fontVariantCaps !== 'small-caps') x.style.removeProperty('font-variant');
+    }
+  });
+}
+
+/* ---------------- secteur ---------------- */
+// angles en degrés, dans le sens des aiguilles d'une montre à partir de 3 heures : du début à la fin
+const anglesSecteur = o => o.angles || [0, 270];
+function pointSecteur(o, a) { const t = a * Math.PI / 180; return [o.w / 2 + o.w / 2 * Math.cos(t), o.h / 2 + o.h / 2 * Math.sin(t)]; }
+function poigneesSecteur(o, d, k) {
+  anglesSecteur(o).forEach((a, i) => {
+    const [x0, y0] = pointSecteur(o, a), h = document.createElement('div');
+    // aux trois quarts du rayon : sur le bord, elle se confondrait avec les poignées de taille
+    const x = o.w / 2 + (x0 - o.w / 2) * 0.75, y = o.h / 2 + (y0 - o.h / 2) * 0.75;
+    h.className = 'poignee p-angle';
+    h.dataset.poignee = 'angle' + i;
+    h.style.left = x * k + 'px'; h.style.top = y * k + 'px';
+    h.title = i ? 'Fin du secteur' : 'Début du secteur (Maj : par pas de 15°)';
+    d.appendChild(h);
+  });
+}
+function gesteAngle(o, i) {
+  avant();
+  return {
+    type: 'angle', actif: false,
+    bouger(p, ev) {
+      this.actif = true;
+      const r = -(o.rot || 0) * Math.PI / 180, cx = o.x + o.w / 2, cy = o.y + o.h / 2;
+      const dx = p.x - cx, dy = p.y - cy, x = dx * Math.cos(r) - dy * Math.sin(r), y = dx * Math.sin(r) + dy * Math.cos(r);
+      let a = Math.atan2(y / (o.h || 1), x / (o.w || 1)) * 180 / Math.PI;
+      a = (Math.round(ev.shiftKey ? Math.round(a / 15) * 15 : a) + 360) % 360;
+      const l = [...anglesSecteur(o)];
+      l[i] = a;
+      o.angles = l;
+      redessinerObjet(o);
+      majSelectionUI();
+    },
+    fin() { if (this.actif) apres(); else E.histo.pop(); }
+  };
+}
+function boiteAngles() {
+  const o = selection().find(x => x.forme === 'secteur');
+  if (!o) return;
+  const [a, b] = anglesSecteur(o), part = Math.round((((b - a) % 360 + 360) % 360 || 360) / 3.6 * 10) / 10;
+  ouvrirBoite('Secteur', `<div class="grille-champs"><span>Début (degrés)</span><input id="se-a" class="champ champ-num" type="number" value="${Math.round(a * 10) / 10}">
+    <span>Part du disque (%)</span><input id="se-p" class="champ champ-num" type="number" min="0.1" max="100" step="0.1" value="${part}"></div>
+    <p style="color:#666;max-width:380px">0° est à droite (3 heures) ; les angles tournent dans le sens des aiguilles d'une montre.</p>`, () => {
+    const d = +$('#se-a').value || 0, p = Math.max(0.1, Math.min(100, +$('#se-p').value || 25));
+    avant();
+    o.angles = [((d % 360) + 360) % 360, p >= 100 ? ((d % 360) + 360) % 360 : (d + p * 3.6 + 360) % 360];
+    redessinerObjet(o);
+    apres();
+  });
+}
+
+/* ---------------- bordures décoratives ---------------- */
+// 8 dessins : coin haut gauche, haut, coin haut droit, droite, coin bas droit, bas, coin bas gauche, gauche
+const BORDURES = (() => {
+  const c = corps => couleur => {
+    const svg = r => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><g transform="rotate(${r} 10 10)" fill="${couleur}" stroke="none">${corps}</g></svg>`;
+    return [0, 0, 90, 90, 180, 180, 270, 270].map(svg);
+  };
+  return [
+    ['Points', c('<circle cx="10" cy="10" r="5"/>')],
+    ['Carrés', c('<rect x="5" y="5" width="10" height="10"/>')],
+    ['Losanges', c('<path d="M10 2L18 10L10 18L2 10Z"/>')],
+    ['Triangles', c('<path d="M1 18L10 3L19 18Z"/>')],
+    ['Étoiles', c('<path d="M10 1l2.7 6 6.5.6-4.9 4.3 1.5 6.4L10 15l-5.8 3.3 1.5-6.4L.8 7.6 7.3 7z"/>')],
+    ['Cœurs', c('<path d="M10 18C3 12 1 9 1 6a4.5 4.5 0 019-1 4.5 4.5 0 019 1c0 3-2 6-9 12z"/>')],
+    ['Damier', c('<path d="M0 0h10v10H0zM10 10h10v10H10z"/>')],
+    ['Zigzag', c('<path d="M0 12L10 2L20 12V18L10 8L0 18z"/>')],
+    ['Vagues', c('<path d="M0 10q5-10 10 0t10 0v5q-5 10-10 0t-10 0z"/>')],
+    ['Barreaux', c('<path d="M3 0h4v20H3zM13 0h4v20h-4z"/>')],
+    ['Double trait', c('<path d="M0 4h20v3H0zM0 12h20v3H0z"/>')],
+    ['Flèches', c('<path d="M2 7h8V2l9 8-9 8v-5H2z"/>')]
+  ].map(([nom, f]) => ({ nom, dessins: f }));
+})();
+// enregistre les 8 dessins dans le document (une seule fois par nom et par couleur) et renvoie leurs clés
+function imagesBordure(b, couleur) {
+  const base = 'bd-' + b.nom.normalize('NFD').replace(/[^a-z]/gi, '') + '-' + couleur.slice(1) + '-';
+  return b.dessins(couleur).map((svg, i) => { const k = base + i; E.fiche.images[k] = 'data:image/svg+xml;base64,' + btoa(svg); return k; });
+}
+function borduresDuDocument() {
+  const vues = new Map();
+  for (const p of [...E.fiche.pages, ...Object.values(E.fiche.maitres)]) for (const o of p.items) if (o.bordure && !/^bd-/.test(o.bordure.images[0])) vues.set(o.bordure.images.join(), o.bordure);
+  return [...vues.values()];
+}
+function boiteBordure() {
+  const cibles = () => selection().filter(o => o.type === 'texte' || o.type === 'forme');
+  const objs = cibles();
+  if (!objs.length) { alerte('Sélectionnez une zone de texte ou une forme.'); return; }
+  const doc = borduresDuDocument(), a = objs[0].bordure;
+  let choix = a ? (/^bd-/.test(a.images[0]) ? 'b' + BORDURES.findIndex(b => b.nom === a.nom) : 'd' + doc.findIndex(x => x.images.join() === a.images.join())) : 'b0';
+  const mc = a && /^bd-.*-([0-9a-f]{6})-0$/i.exec(a.images[0]);
+  const couleurActuelle = mc ? '#' + mc[1] : '#1f4e79';
+  ouvrirBoite('Bordure décorative', `<div class="grille-bordures" id="bd-grille" role="listbox" aria-label="Bordures"></div>
+    <div class="grille-champs" style="margin-top:10px"><span>Couleur</span><input type="color" id="bd-c" value="${couleurActuelle}">
+      <span>Épaisseur (pt)</span><input id="bd-e" class="champ champ-num" type="number" min="3" max="80" value="${a ? Math.round(a.taille / 0.3528) : 12}"></div>
+    <label style="display:flex;gap:8px;align-items:center;margin-top:8px"><input type="checkbox" id="bd-aucune"> Retirer la bordure décorative</label>`, () => {
+    const e = Math.max(3, Math.min(80, +$('#bd-e').value || 12)), coul = $('#bd-c').value;
+    avant();
+    for (const o of cibles()) {
+      if ($('#bd-aucune').checked) delete o.bordure;
+      else if (choix[0] === 'd') o.bordure = Object.assign(copie(doc[+choix.slice(1)]), { taille: arrondi(e * 0.3528) });
+      else { const b = BORDURES[+choix.slice(1)]; o.bordure = { nom: b.nom, images: imagesBordure(b, coul), taille: arrondi(e * 0.3528) }; }
+      redessinerObjet(o);
+    }
+    apres();
+  });
+  const dessiner = () => {
+    const coul = $('#bd-c').value;
+    const vue = (cle, nom, srcs) => `<button type="button" role="option" data-b="${cle}" title="${esc(nom)}" aria-label="${esc(nom)}" aria-selected="${cle === choix}"><span class="apercu-bordure">${[0, 1, 1, 1, 2].map(i => `<img alt="" src="${esc(srcs[i])}">`).join('')}</span><small>${esc(nom)}</small></button>`;
+    $('#bd-grille').innerHTML = doc.map((d, i) => vue('d' + i, d.nom + ' (document)', d.images.map(k => E.fiche.images[k] || ''))).join('') +
+      BORDURES.map((b, i) => vue('b' + i, b.nom, b.dessins(coul).map(s => 'data:image/svg+xml;base64,' + btoa(s)))).join('');
+  };
+  $('#bd-grille').addEventListener('click', ev => { const b = ev.target.closest('[data-b]'); if (b) { choix = b.dataset.b; $('#bd-aucune').checked = false; dessiner(); } });
+  $('#bd-c').addEventListener('input', dessiner);
+  dessiner();
+}
+
+/* ---------------- retourner un groupe entier ---------------- */
+// en miroir autour du centre du groupe : chaque objet change de côté, se retourne, et tourne en sens inverse
+function retournerGroupe(objs, sens) {
+  const b = boiteEnglobante(objs), k = sens === 'h' ? 'miroirH' : 'miroirV';
+  for (const o of objs) {
+    if (sens === 'h') o.x = arrondi(2 * b.x + b.w - o.x - o.w); else o.y = arrondi(2 * b.y + b.h - o.y - o.h);
+    if (o[k]) delete o[k]; else o[k] = true;
+    if (o.rot) o.rot = arrondi((360 - o.rot) % 360);
+    redessinerObjet(o);
+  }
+}
+
+Object.assign(COMMANDES, { petitesCapitales, anglesSecteur: boiteAngles, bordureDeco: boiteBordure });
+
 /* ==== pwa.js ==== */
 /* =====================================================================
    PageLibre : application installable (PWA)
@@ -9225,7 +9528,7 @@ function chargerFiche(fiche, opt = {}) {
 
 /* ---------------- enregistrement ---------------- */
 // toutes les images dont dépend un objet : image, fond en image, motif (hachures)
-function imagesObjet(o) { return [o.image, o.fond && o.fond.image, o.fond && o.fond.motif].filter(Boolean); }
+function imagesObjet(o) { return [o.image, o.fond && o.fond.image, o.fond && o.fond.motif, ...((o.bordure && o.bordure.images) || [])].filter(Boolean); }
 function imagesUtilisees() {
   const u = new Set();
   const voir = o => imagesObjet(o).forEach(k => u.add(k));

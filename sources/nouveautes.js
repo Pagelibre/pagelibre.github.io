@@ -3,6 +3,15 @@
    Le numéro de version (VERSION_NOM) vient de depot/package.json : le changer à chaque publication. */
 const NOUVEAUTES = [
   {
+    version: '1.2.0', date: '23/11/2026',
+    points: [
+      'Nouveau : petites capitales (Accueil), secteurs de diagramme avec poignées jaunes pour les angles (Formes), bordures décoratives (Contour).',
+      'Fichiers .pub : bordures décoratives et secteurs repris et modifiables ; groupes retournés.',
+      'Le texte est en retrait de l’épaisseur de la bordure, comme dans l’application d’origine ; lignes contenant σ à la bonne hauteur.',
+      'Retourner un groupe le retourne d’un bloc.'
+    ]
+  },
+  {
     version: '1.1.3', date: '23/11/2026',
     points: [
       'Nouveau : remplissage à motif (hachures, trames, quadrillages…) pour les formes, les zones de texte et les cellules : Format › Motif.',

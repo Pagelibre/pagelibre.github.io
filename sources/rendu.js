@@ -35,6 +35,12 @@
     switch (o.forme) {
       case 'ellipse': return `M0 ${f2(h / 2)}A${f2(w / 2)} ${f2(h / 2)} 0 1 0 ${f2(w)} ${f2(h / 2)}A${f2(w / 2)} ${f2(h / 2)} 0 1 0 0 ${f2(h / 2)}Z`;
       case 'rectArrondi': case 'parchemin': return rectArrondi(w, h, Math.min(w, h) * A(3600));
+      case 'secteur': {
+        const [d0, d1] = o.angles || [0, 270], rx = w / 2, ry = h / 2, bal = ((d1 - d0) % 360 + 360) % 360 || 360;
+        const pt = x => f2(rx + rx * Math.cos(x * Math.PI / 180)) + ' ' + f2(ry + ry * Math.sin(x * Math.PI / 180));
+        if (bal > 359.99) return `M${f2(w)} ${f2(ry)}A${f2(rx)} ${f2(ry)} 0 1 1 0 ${f2(ry)}A${f2(rx)} ${f2(ry)} 0 1 1 ${f2(w)} ${f2(ry)}Z`;
+        return `M${f2(rx)} ${f2(ry)}L${pt(d0)}A${f2(rx)} ${f2(ry)} 0 ${bal > 180 ? 1 : 0} 1 ${pt(d1)}Z`;
+      }
       case 'losange': return P([[w / 2, 0], [w, h / 2], [w / 2, h], [0, h / 2]]);
       case 'triangle': return P([[w * A(10800), 0], [w, h], [0, h]]);
       case 'triangleRect': return P([[0, 0], [w, h], [0, h]]);
@@ -320,6 +326,19 @@
     return c;
   }
 
+  // bordure décorative : 8 dessins (coin haut gauche, puis sens horaire), répétés le long des côtés
+  function bordureDecorative(o, fiche) {
+    const b = o.bordure, T = Math.min(b.taille, o.w / 2, o.h / 2);
+    const s = el('svg', { class: 'svg-forme bordure-deco', viewBox: `0 0 ${f2(o.w)} ${f2(o.h)}`, preserveAspectRatio: 'none' });
+    const im = (i, x, y, w, h) => { const u = fiche.images[b.images[i]]; if (u && !/^data:image\/x-/.test(u)) el('image', { href: u, x: f2(x), y: f2(y), width: f2(w), height: f2(h), preserveAspectRatio: 'none' }, s); };
+    const nx = Math.max(1, Math.round((o.w - 2 * T) / T)), ny = Math.max(1, Math.round((o.h - 2 * T) / T));
+    const px = (o.w - 2 * T) / nx, py = (o.h - 2 * T) / ny;
+    if (px > 0) for (let i = 0; i < Math.min(nx, 400); i++) { im(1, T + i * px, 0, px, T); im(5, T + i * px, o.h - T, px, T); }
+    if (py > 0) for (let i = 0; i < Math.min(ny, 400); i++) { im(3, o.w - T, T + i * py, T, py); im(7, 0, T + i * py, T, py); }
+    im(0, 0, 0, T, T); im(2, o.w - T, 0, T, T); im(4, o.w - T, o.h - T, T, T); im(6, 0, o.h - T, T, T);
+    return s;
+  }
+
   function biseauRect(o) {
     const b = document.createElement('div');
     b.className = 'biseau';
@@ -565,6 +584,7 @@
       if (c >= 2 && l.length - c >= 3 && !"'’-".includes(m[c - 1])) pos.push(c);
       i = j - 1;
     }
+    if (/^(satisf|caract|séries?$)/.test(l)) return pos.filter(c => c > 2);
     return pos;
   }
   function cesurer(z) {
@@ -762,13 +782,17 @@
         break;
       }
       case 'texte': case 'forme': {
-        if (o.fond || o.trait || o.type === 'forme') d.appendChild(svgForme(o, fiche, true));
+        if (o.fond || o.trait || o.type === 'forme') d.appendChild(svgForme(o.bordure ? Object.assign({}, o, { trait: null }) : o, fiche, true));
+        if (o.bordure) d.appendChild(bordureDecorative(o, fiche));
         if (o.type === 'texte' || o.html) {
           const m = o.marges || [2.54, 1.27, 2.54, 1.27];
           const cadre = document.createElement('div');
           cadre.className = 'cadre-texte v-' + (o.vertical || 'haut');
           if (o.sensTexte) cadre.classList.add('sens-' + o.sensTexte);
-          cadre.style.padding = `${m[1]}mm ${m[2]}mm ${m[3]}mm ${m[0]}mm`;
+          // comme dans l'application d'origine, le texte est en retrait de toute l'épaisseur de la bordure
+          // (mesuré sur 130 zones d'un PDF : 0,32 mm pour 1 pt, 0,67 mm pour 2 pt)
+          const eb = o.bordure ? o.bordure.taille : o.trait && o.type === 'texte' ? (o.trait.epaisseur || 0) * PT_MM : 0;
+          cadre.style.padding = m.map(x => x + eb).map(x => +x.toFixed(2)).map((x, i, l) => [l[1], l[2], l[3], l[0]][i] + 'mm').join(' ');
           const ct = contenuTexte(o.html);
           const z = o.ajustement && o.ajustement !== 1 ? o.ajustement : 1;
           if (z !== 1) ct.style.zoom = z;
