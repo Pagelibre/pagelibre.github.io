@@ -39,7 +39,8 @@ function pdfEssai() {
 
 (async () => {
   await new Promise(r => serveur.listen(0, '127.0.0.1', r));
-  const url = `http://127.0.0.1:${serveur.address().port}/pagelibre/`;
+  // (variable PAGELIBRE_URL=https://pagelibre.github.io/ : contrôle du site réellement en ligne)
+  const url = process.env.PAGELIBRE_URL || `http://127.0.0.1:${serveur.address().port}/pagelibre/`;
   const edge = await lancer({ largeur: 1400, hauteur: 900 });
   let ko = 0;
   const v = (c, m) => { console.log(c ? '  ok  ' : '  ÉCHEC', m); if (!c) ko++; };
@@ -184,7 +185,7 @@ function pdfEssai() {
     await edge.eval(`fermerCoulisses(); localStorage.setItem('pagelibre-version-vue', '1.0.0'); E.modifie = false`);
     await edge.ouvrir(url);
     await attendre(1500);
-    v(await edge.eval(`!document.querySelector('#boite').hidden && /Quoi de neuf/.test(document.querySelector('#boite').textContent) && /1\\.1\\.0/.test(document.querySelector('#boite').textContent)`), 'nouvelle version : « Quoi de neuf » s\'affiche une fois');
+    v(await edge.eval(`!document.querySelector('#boite').hidden && /Quoi de neuf/.test(document.querySelector('#boite').textContent) && document.querySelector('#boite').textContent.includes('Version ' + VERSION_NOM)`), 'nouvelle version : « Quoi de neuf » s\'affiche une fois');
     await edge.ouvrir(url);
     await attendre(1200);
     v(await edge.eval(`document.querySelector('#boite').hidden`), '… et pas à l\'ouverture suivante');

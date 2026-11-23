@@ -35,17 +35,19 @@ const serveur = http.createServer((req, rep) => {
     let inst = null;
     try { inst = await edge.envoyer('Page.getInstallabilityErrors'); } catch (e) { inst = null; }
     verifier(inst && !inst.installabilityErrors.length, 'application installable' + (inst && inst.installabilityErrors.length ? ' : ' + JSON.stringify(inst.installabilityErrors) : ''));
+    // attentes par sondage (et non durées fixes) : le test reste fiable sur une machine lente (GitHub)
+    const jusqua = async (expr, ms = 8000) => { for (let t = 0; t < ms; t += 200) { try { if (await edge.eval(expr)) return true; } catch (e) { /* page en cours de chargement */ } await attendre(200); } return false; };
     await edge.eval(`navigator.serviceWorker.ready.then(() => true)`);
+    // le cache est rempli à l'installation : on attend que le service worker soit actif
+    await jusqua(`navigator.serviceWorker.getRegistration().then(r => !!(r && r.active && r.active.state === 'activated'))`);
     await edge.ouvrir(url);
-    await attendre(800);
-    verifier(await edge.eval(`!!navigator.serviceWorker.controller`), 'service worker actif (mise en cache faite)');
+    verifier(await jusqua(`!!navigator.serviceWorker.controller`), 'service worker actif (mise en cache faite)');
     // hors connexion : on coupe le serveur et le réseau
     serveur.close();
     await edge.envoyer('Network.enable');
     await edge.envoyer('Network.emulateNetworkConditions', { offline: true, latency: 0, downloadThroughput: -1, uploadThroughput: -1 });
     await edge.ouvrir(url);
-    await attendre(800);
-    verifier(await edge.eval(`typeof E === 'object' && !!document.querySelector('#ruban .panneau.actif')`), 'l\'application s\'ouvre hors connexion');
+    verifier(await jusqua(`typeof E === 'object' && !!document.querySelector('#ruban .panneau.actif')`), 'l\'application s\'ouvre hors connexion');
     verifier(await edge.eval(`EN_LIGNE && formatParDefaut() === 'pagelibre'`), 'en ligne, le format proposé est .pagelibre');
     // format .pagelibre : enregistrer puis rouvrir
     const ret = await edge.eval(`(async () => {

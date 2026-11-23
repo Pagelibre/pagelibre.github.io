@@ -10,10 +10,10 @@ const URL_EDITEUR = 'file:///' + path.resolve(__dirname, '..', 'docs', 'index.ht
   const v = (c, m) => { console.log(c ? '  ok  ' : '  ÉCHEC', m); if (!c) ko++; };
   try {
     await edge.ouvrir(URL_EDITEUR);
-    await attendre(600);
+    await attendre(1500); // polices et mise en page terminées (machine lente : GitHub)
     const molette = async (x, y, dy, mod) => {
       await edge.envoyer('Input.dispatchMouseEvent', { type: 'mouseWheel', x, y, deltaX: 0, deltaY: dy, modifiers: mod || 0 });
-      await attendre(150);
+      await attendre(350);
     };
     const pts = await edge.eval(`(() => { const f = E.feuille.getBoundingClientRect(), d = document.querySelector('#defile').getBoundingClientRect(), v = document.querySelector('#liste-pages').getBoundingClientRect(), r = document.querySelector('#regle-h').getBoundingClientRect();
       return { page: [f.left + f.width / 2, f.top + f.height / 2], gris: [d.left + 20, d.top + 20], volet: [v.left + 50, v.top + 50], regle: [r.left + 200, r.top + 10] }; })()`);

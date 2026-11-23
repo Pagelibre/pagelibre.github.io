@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-Wd87PEGa5GqYkBD3zp+Imy8whyooZrY5yl3JSYAnotY='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' data: blob:; worker-src 'self' blob:; media-src 'self' data: blob:; object-src 'none'; base-uri 'none'; form-action 'none'; frame-src 'none'; manifest-src 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-Irw95dnXNVong8BqbrCGZ+c1nNkhq11iDJ0gW7T+Vps='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' data: blob:; worker-src 'self' blob:; media-src 'self' data: blob:; object-src 'none'; base-uri 'none'; form-action 'none'; frame-src 'none'; manifest-src 'self'">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>PageLibre</title>
 <meta name="description" content="PageLibre : logiciel libre et gratuit de mise en page (affiches, fiches, brochures), dans le navigateur. Ouvre aussi les anciens fichiers .pub.">
@@ -680,8 +680,8 @@ body.tactile .sep-lig { height: 18px; margin-top: -6px; }
 
 <script id="fiche-integree" type="application/json">null</script>
 <script>
-const VERSION_EDITEUR = '2026-11-20T23:03';
-const VERSION_NOM = '1.1.0';
+const VERSION_EDITEUR = '2026-11-23T11:52';
+const VERSION_NOM = '1.1.1';
 const DEPOT_URL = "https://github.com/Pagelibre/pagelibre.github.io";
 const LIEN_SOUTIEN = "";
 const LOGO_SVG = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\">\n  <rect width=\"64\" height=\"64\" rx=\"14\" fill=\"#23405e\"/>\n  <path d=\"M18 10h20l11 11v31a3 3 0 0 1-3 3H18a3 3 0 0 1-3-3V13a3 3 0 0 1 3-3z\" fill=\"#ffffff\"/>\n  <path d=\"M38 10v8a3 3 0 0 0 3 3h8z\" fill=\"#c9d8e8\"/>\n  <rect x=\"20\" y=\"25\" width=\"12\" height=\"10\" rx=\"1.5\" fill=\"#f2b705\"/>\n  <path d=\"M35.5 27h8.5M35.5 32h8.5M20.5 40h23.5M20.5 45h23.5M20.5 50h15\" stroke=\"#23405e\" stroke-width=\"2.4\" stroke-linecap=\"round\"/>\n</svg>";
@@ -1295,6 +1295,9 @@ function assainirFiche(f) {
     if (ids.has(0x02) || ids.has(0x37)) s.gras = true;
     if (ids.has(0x03) || ids.has(0x38)) s.italique = true;
     if (ids.has(0x1e) && (ids.get(0x1e).val & 0xff)) s.souligne = true;
+    // 0x13 sans valeur : petites capitales (« application » en 12 pt gras s'affiche APPLICATION, plus petit que
+    // des majuscules de 12 pt : vu sur un PDF de Publisher, nov. 2026) ; 0x12 et 0x3e valent 1036 : la langue (français)
+    if (ids.has(0x13) && ids.get(0x13).val == null) s.petitesCapitales = true;
     if (ids.has(0x24)) {
       const b = ids.get(0x24);
       const entrees = b.varia ? sousBlocs(dv, b) : [];
@@ -1316,6 +1319,8 @@ function assainirFiche(f) {
     }
     if (ci != null && Q.couleursTexte[ci] != null) s.couleur = couleurRGB(Q.couleursTexte[ci], palette);
     if (ids.has(0x2f)) { const v = ids.get(0x2f).val; if (v === 1) s.exposant = true; else if (v === 2) s.indice = true; }
+    // 0x0f : position du caractère, octet bas 1 = exposant, 2 = indice (le « i » de xi, ni : vu sur un .pub de statistique, nov. 2026)
+    if (ids.has(0x0f) && ids.get(0x0f).val != null) { const v = ids.get(0x0f).val & 0xff; if (v === 1) s.exposant = true; else if (v === 2) s.indice = true; }
     return s;
   }
 
@@ -1360,6 +1365,7 @@ function assainirFiche(f) {
     if (s.gras) st.push('font-weight:bold');
     if (s.italique) st.push('font-style:italic');
     if (s.souligne) st.push('text-decoration:underline');
+    if (s.petitesCapitales) st.push('font-variant:small-caps');
     if (s.couleur && s.couleur !== '#000000') st.push(`color:${s.couleur}`);
     if (s.exposant) st.push('vertical-align:super;font-size:smaller');
     if (s.indice) st.push('vertical-align:sub;font-size:smaller');
@@ -2072,6 +2078,14 @@ function assainirFiche(f) {
 
   function svgForme(o, fiche, avecFond) {
     const s = el('svg', { class: 'svg-forme', viewBox: `0 0 ${f2(Math.max(o.w, 0.01))} ${f2(Math.max(o.h, 0.01))}`, preserveAspectRatio: 'none', overflow: 'visible' });
+    // trait horizontal ou vertical (hauteur ou largeur nulle) : étiré à la taille du cadre, il serait aplati
+    // à rien et invisible. On le dessine à sa taille réelle, en mm, avec une marge pour l'épaisseur et les flèches.
+    if (o.w < 0.2 || o.h < 0.2) {
+      const m = 3;
+      s.setAttribute('viewBox', `${-m} ${-m} ${f2(o.w + 2 * m)} ${f2(o.h + 2 * m)}`);
+      s.removeAttribute('preserveAspectRatio');
+      s.style.cssText = `left:${-m}mm;top:${-m}mm;width:${f2(o.w + 2 * m)}mm;height:${f2(o.h + 2 * m)}mm`;
+    }
     const defs = el('defs', {}, s);
     const g = el('g', {}, s);
     if (o.miroirH || o.miroirV) g.setAttribute('transform', `translate(${o.miroirH ? f2(o.w) : 0} ${o.miroirV ? f2(o.h) : 0}) scale(${o.miroirH ? -1 : 1} ${o.miroirV ? -1 : 1})`);
@@ -2973,8 +2987,29 @@ function assainirFiche(f) {
     return c;
   }
 
+  /* ---------- police Symbol → caractères Unicode ----------
+     L'éditeur d'équations (Équation 3.0, MathType) écrit Σ, σ, ×, ≤… avec la police Symbol, où « å » vaut Σ.
+     On les traduit en vrais caractères : ils s'affichent alors partout, même sans la police Symbol. */
+  const SYMBOL = (() => {
+    const t = {};
+    const grec = 'ΑΒΧΔΕΦΓΗΙϑΚΛΜΝΟΠΘΡΣΤΥςΩΞΨΖ', grecMin = 'αβχδεφγηιϕκλμνοπθρστυϖωξψζ';
+    for (let i = 0; i < 26; i++) { t[65 + i] = grec[i]; t[97 + i] = grecMin[i]; }
+    Object.assign(t, { 0x22: '∀', 0x24: '∃', 0x27: '∋', 0x2A: '∗', 0x2D: '−', 0x40: '≅', 0x5C: '∴', 0x5E: '⊥', 0x60: '‾',
+      0xA1: 'ϒ', 0xA2: '′', 0xA3: '≤', 0xA4: '⁄', 0xA5: '∞', 0xA6: 'ƒ', 0xA7: '♣', 0xA8: '♦', 0xA9: '♥', 0xAA: '♠', 0xAB: '↔', 0xAC: '←', 0xAD: '↑', 0xAE: '→', 0xAF: '↓',
+      0xB0: '°', 0xB1: '±', 0xB2: '″', 0xB3: '≥', 0xB4: '×', 0xB5: '∝', 0xB6: '∂', 0xB7: '•', 0xB8: '÷', 0xB9: '≠', 0xBA: '≡', 0xBB: '≈', 0xBC: '…', 0xBD: '⏐', 0xBE: '⎯', 0xBF: '↵',
+      0xC0: 'ℵ', 0xC1: 'ℑ', 0xC2: 'ℜ', 0xC3: '℘', 0xC4: '⊗', 0xC5: '⊕', 0xC6: '∅', 0xC7: '∩', 0xC8: '∪', 0xC9: '⊃', 0xCA: '⊇', 0xCB: '⊄', 0xCC: '⊂', 0xCD: '⊆', 0xCE: '∈', 0xCF: '∉',
+      0xD0: '∠', 0xD1: '∇', 0xD2: '®', 0xD3: '©', 0xD4: '™', 0xD5: '∏', 0xD6: '√', 0xD7: '⋅', 0xD8: '¬', 0xD9: '∧', 0xDA: '∨', 0xDB: '⇔', 0xDC: '⇐', 0xDD: '⇑', 0xDE: '⇒', 0xDF: '⇓',
+      0xE0: '◊', 0xE1: '〈', 0xE2: '®', 0xE3: '©', 0xE4: '™', 0xE5: '∑', 0xE6: '⎛', 0xE7: '⎜', 0xE8: '⎝', 0xE9: '⎡', 0xEA: '⎢', 0xEB: '⎣', 0xEC: '⎧', 0xED: '⎨', 0xEE: '⎩', 0xEF: '⎪',
+      0xF1: '〉', 0xF2: '∫', 0xF3: '⌠', 0xF4: '⎮', 0xF5: '⌡', 0xF6: '⎞', 0xF7: '⎟', 0xF8: '⎠', 0xF9: '⎤', 0xFA: '⎥', 0xFB: '⎦', 0xFC: '⎫', 0xFD: '⎬', 0xFE: '⎭' });
+    return t;
+  })();
+  const estSymbol = nom => /^symbol$/i.test(nom || '');
+  function versUnicodeSymbol(octets) { let s = ''; for (const b of octets) s += SYMBOL[b] || String.fromCharCode(b); return s; }
+
   /* ---------- WMF ---------- */
-  async function wmf(u8) {
+  // cible : { w, h } (mm) du cadre où l'image est affichée. Comme Windows, on dessine aux proportions du cadre :
+  // les positions suivent le cadre, mais les caractères gardent leur forme (pas de texte étiré).
+  async function wmf(u8, cible) {
     const dv = new DataView(u8.buffer, u8.byteOffset, u8.byteLength);
     let o = 0, bbox = null;
     if (dv.getUint32(0, true) === 0x9AC6CDD7) { bbox = [6, 8, 10, 12].map(d => dv.getInt16(d, true)); o = 22; }
@@ -2983,10 +3018,20 @@ function assainirFiche(f) {
     const S = etatInitial();
     S.wex = bbox ? bbox[2] - bbox[0] : 1000; S.wey = bbox ? bbox[3] - bbox[1] : 1000;
     S.wox = bbox ? bbox[0] : 0; S.woy = bbox ? bbox[1] : 0;
-    const W = Math.abs(S.wex), H = Math.abs(S.wey);
-    const k = 1600 / Math.max(W, H, 1);
+    // sans en-tête de taille (cas des équations) : la taille du dessin est donnée par son premier SetWindowExt/Org
+    if (!bbox) {
+      for (let q = o, n = 0; q + 6 <= dv.byteLength && n < 400; n++) {
+        const t = dv.getUint32(q, true) * 2, fn = dv.getUint16(q + 4, true);
+        if (t < 6 || fn === 0) break;
+        if (fn === 0x020C) { S.wey = dv.getInt16(q + 6, true); S.wex = dv.getInt16(q + 8, true); break; }
+        if (fn === 0x020B) { S.woy = dv.getInt16(q + 6, true); S.wox = dv.getInt16(q + 8, true); }
+        q += t;
+      }
+    }
+    const W = Math.abs(S.wex) || 1, H = Math.abs(S.wey) || 1;
+    const ratio = cible && cible.w > 0 && cible.h > 0 ? cible.w / cible.h : W / H;
     const c = document.createElement('canvas');
-    c.width = Math.max(1, Math.round(W * k)); c.height = Math.max(1, Math.round(H * k));
+    c.width = Math.max(1, Math.round(ratio >= 1 ? 1600 : 1600 * ratio)); c.height = Math.max(1, Math.round(ratio >= 1 ? 1600 / ratio : 1600));
     const ctx = c.getContext('2d');
     const objets = [];
     const pile = [];
@@ -3070,20 +3115,29 @@ function assainirFiche(f) {
           if (f === 0x0521) { n = i16(0); so = p + 2; const pad = n + (n & 1); y = i16(2 + pad); x = i16(4 + pad); }
           else { y = i16(0); x = i16(2); n = i16(4); const opt = dv.getUint16(p + 6, true); so = p + 8 + (opt & 6 ? 8 : 0); }
           const octets = u8.subarray(so, so + n);
-          const s = dec ? dec.decode(octets) : String.fromCharCode(...octets);
+          const symbole = estSymbol(St.police.nom);
+          const s = symbole ? versUnicodeSymbol(octets) : dec ? dec.decode(octets) : String.fromCharCode(...octets);
+          // espacement de chaque caractère (ExtTextOut), en unités logiques, s'il est fourni
+          const finTexte = so + n + (n & 1);
+          const ecarts = f === 0x0A32 && finTexte + n * 2 <= o + taille ? Array.from({ length: n }, (_, i) => dv.getInt16(finTexte + i * 2, true)) : null;
           appliquer();
           const m = ctx.getTransform();
           const dx = m.a * x + m.c * y + m.e, dy = m.b * x + m.d * y + m.f;
+          // hauteur de police : échelle verticale ; la largeur suit (comme GDI avec une largeur de police nulle)
           const hpx = Math.max(1, Math.abs(St.police.hauteur) * Math.abs(m.d) * (St.police.hauteur > 0 ? 0.82 : 1));
           ctx.save();
           ctx.setTransform(1, 0, 0, 1, dx, dy);
           if (St.police.angle) ctx.rotate(-St.police.angle * Math.PI / 1800);
-          ctx.font = `${St.police.italique ? 'italic ' : ''}${St.police.gras ? 'bold ' : ''}${hpx}px "${St.police.nom}"`;
+          const famille = symbole ? '"Times New Roman", "Cambria Math", "Segoe UI Symbol", serif' : `"${St.police.nom}"`;
+          ctx.font = `${St.police.italique ? 'italic ' : ''}${St.police.gras ? 'bold ' : ''}${hpx}px ${famille}`;
           ctx.fillStyle = St.texte;
           const a = St.alignTexte;
           ctx.textAlign = (a & 6) === 6 ? 'center' : (a & 2) ? 'right' : 'left';
           ctx.textBaseline = (a & 24) === 24 ? 'alphabetic' : (a & 8) ? 'bottom' : 'top';
-          ctx.fillText(s, 0, 0);
+          if (ecarts && ctx.textAlign === 'left' && s.length === n && n > 1) {
+            let cx = 0;
+            for (let i = 0; i < n; i++) { ctx.fillText(s[i], cx, 0); cx += ecarts[i] * Math.abs(m.a); }
+          } else ctx.fillText(s, 0, 0);
           ctx.restore();
           break;
         }
@@ -3110,14 +3164,15 @@ function assainirFiche(f) {
   }
 
   // data:image/x-emf[;z=1];base64,… -> data:image/png;base64,…
-  async function versPNG(url) {
+  // cible (facultatif) : { w, h } en mm, taille du cadre où l'image est affichée
+  async function versPNG(url, cible) {
     const m = /^data:image\/x-(emf|wmf)(;z=1)?;base64,(.*)$/.exec(url);
     if (!m) return null;
     const bin = atob(m[3]);
     let u8 = new Uint8Array(bin.length);
     for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
     if (m[2]) u8 = await inflate(u8);
-    const c = m[1] === 'emf' ? await emf(u8) : await wmf(u8);
+    const c = m[1] === 'emf' ? await emf(u8) : await wmf(u8, cible);
     return c.toDataURL('image/png');
   }
 
@@ -3725,7 +3780,10 @@ function definirZoom(z, ancre) {
 }
 function zoomPage() {
   const def = $('#defile');
-  const z = Math.min((def.clientWidth - 40) / (E.fiche.page.w * PX_MM), (def.clientHeight - 30) / (E.fiche.page.h * PX_MM));
+  // mêmes marges que majScene (au moins MARGE_SCENE à gauche et à droite, 0,6 × MARGE_SCENE en haut et en bas) :
+  // sinon le bas de la page dépasse de la zone et paraît rogné
+  const nbPages = indexVoisine() != null ? 2 : 1;
+  const z = Math.min((def.clientWidth - 2 * MARGE_SCENE - 4) / (nbPages * E.fiche.page.w * PX_MM), (def.clientHeight - 2 * MARGE_SCENE * 0.6 - 4) / (E.fiche.page.h * PX_MM));
   definirZoom(z);
   centrerVue();
 }
@@ -7559,8 +7617,16 @@ async function convertirMetafichiers() {
   const refs = Object.keys(E.fiche.images).filter(k => /^data:image\/x-(emf|wmf)/.test(E.fiche.images[k]));
   if (!refs.length || typeof LecteurMeta === 'undefined') return;
   let n = 0, illisibles = 0;
+  // taille d'affichage de chaque image (premier cadre qui l'utilise, rognage compris) : le dessin est fait à ces proportions
+  const tailles = {};
+  for (const p of [...E.fiche.pages, ...Object.values(E.fiche.maitres)]) for (const o of p.items) {
+    if (o.image && !tailles[o.image] && o.w > 0 && o.h > 0) {
+      const [ha, dr, ba, ga] = o.rognage || [0, 0, 0, 0];
+      tailles[o.image] = { w: o.w / Math.max(0.05, 1 - ga - dr), h: o.h / Math.max(0.05, 1 - ha - ba) };
+    }
+  }
   for (const k of refs) {
-    try { const png = await LecteurMeta.versPNG(E.fiche.images[k]); if (png) { E.fiche.images[k] = png; n++; } }
+    try { const png = await LecteurMeta.versPNG(E.fiche.images[k], tailles[k]); if (png) { E.fiche.images[k] = png; n++; } }
     catch (e) { illisibles++; }
   }
   if (n) { afficherPage(); dessinerVignettes(); }
@@ -7865,6 +7931,15 @@ function nouveauDepuisModele(cle) {
    Affichées une fois à la première ouverture d'une nouvelle version, et dans Fichier › Aide.
    Le numéro de version (VERSION_NOM) vient de depot/package.json : le changer à chaque publication. */
 const NOUVEAUTES = [
+  {
+    version: '1.1.1', date: '23/11/2026',
+    points: [
+      'Fichiers .pub : les traits horizontaux et verticaux s\'affichent (pointillés à compléter, axes, graduations, moustaches).',
+      'Équations des fiches .pub : proportions respectées, nombres complets, symboles Σ, σ, × lisibles sur tous les ordinateurs.',
+      'Fichiers .pub : petites capitales, indices (xᵢ, nᵢ) et exposants repris.',
+      '« Page entière » montre toute la page : le bas n\'est plus coupé.'
+    ]
+  },
   {
     version: '1.1.0', date: '21/11/2026',
     points: [

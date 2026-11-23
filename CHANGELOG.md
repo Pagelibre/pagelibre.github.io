@@ -1,5 +1,12 @@
 # Nouveautés de PageLibre
 
+## 1.1.1 (23/11/2026)
+
+- Fichiers .pub : les traits horizontaux et verticaux s'affichent (pointillés à compléter, axes, graduations, moustaches).
+- Équations des fiches .pub : proportions respectées, nombres complets, symboles Σ, σ, × lisibles sur tous les ordinateurs.
+- Fichiers .pub : petites capitales, indices (xᵢ, nᵢ) et exposants repris.
+- « Page entière » montre toute la page : le bas n'est plus coupé.
+
 ## 1.1.0 (21/11/2026)
 
 - Sécurité : un document reçu de quelqu'un est nettoyé à l'ouverture (aucun code ne peut s'y cacher), et la page n'exécute que le code de PageLibre.

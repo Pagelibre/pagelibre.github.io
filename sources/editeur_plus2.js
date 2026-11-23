@@ -285,8 +285,16 @@ async function convertirMetafichiers() {
   const refs = Object.keys(E.fiche.images).filter(k => /^data:image\/x-(emf|wmf)/.test(E.fiche.images[k]));
   if (!refs.length || typeof LecteurMeta === 'undefined') return;
   let n = 0, illisibles = 0;
+  // taille d'affichage de chaque image (premier cadre qui l'utilise, rognage compris) : le dessin est fait à ces proportions
+  const tailles = {};
+  for (const p of [...E.fiche.pages, ...Object.values(E.fiche.maitres)]) for (const o of p.items) {
+    if (o.image && !tailles[o.image] && o.w > 0 && o.h > 0) {
+      const [ha, dr, ba, ga] = o.rognage || [0, 0, 0, 0];
+      tailles[o.image] = { w: o.w / Math.max(0.05, 1 - ga - dr), h: o.h / Math.max(0.05, 1 - ha - ba) };
+    }
+  }
   for (const k of refs) {
-    try { const png = await LecteurMeta.versPNG(E.fiche.images[k]); if (png) { E.fiche.images[k] = png; n++; } }
+    try { const png = await LecteurMeta.versPNG(E.fiche.images[k], tailles[k]); if (png) { E.fiche.images[k] = png; n++; } }
     catch (e) { illisibles++; }
   }
   if (n) { afficherPage(); dessinerVignettes(); }

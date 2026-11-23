@@ -533,6 +533,9 @@
     if (ids.has(0x02) || ids.has(0x37)) s.gras = true;
     if (ids.has(0x03) || ids.has(0x38)) s.italique = true;
     if (ids.has(0x1e) && (ids.get(0x1e).val & 0xff)) s.souligne = true;
+    // 0x13 sans valeur : petites capitales (« application » en 12 pt gras s'affiche APPLICATION, plus petit que
+    // des majuscules de 12 pt : vu sur un PDF de Publisher, nov. 2026) ; 0x12 et 0x3e valent 1036 : la langue (français)
+    if (ids.has(0x13) && ids.get(0x13).val == null) s.petitesCapitales = true;
     if (ids.has(0x24)) {
       const b = ids.get(0x24);
       const entrees = b.varia ? sousBlocs(dv, b) : [];
@@ -554,6 +557,8 @@
     }
     if (ci != null && Q.couleursTexte[ci] != null) s.couleur = couleurRGB(Q.couleursTexte[ci], palette);
     if (ids.has(0x2f)) { const v = ids.get(0x2f).val; if (v === 1) s.exposant = true; else if (v === 2) s.indice = true; }
+    // 0x0f : position du caractère, octet bas 1 = exposant, 2 = indice (le « i » de xi, ni : vu sur un .pub de statistique, nov. 2026)
+    if (ids.has(0x0f) && ids.get(0x0f).val != null) { const v = ids.get(0x0f).val & 0xff; if (v === 1) s.exposant = true; else if (v === 2) s.indice = true; }
     return s;
   }
 
@@ -598,6 +603,7 @@
     if (s.gras) st.push('font-weight:bold');
     if (s.italique) st.push('font-style:italic');
     if (s.souligne) st.push('text-decoration:underline');
+    if (s.petitesCapitales) st.push('font-variant:small-caps');
     if (s.couleur && s.couleur !== '#000000') st.push(`color:${s.couleur}`);
     if (s.exposant) st.push('vertical-align:super;font-size:smaller');
     if (s.indice) st.push('vertical-align:sub;font-size:smaller');

@@ -26,6 +26,7 @@ const tests = [
   ['test_pwa.js', [tmp]],
   ['test_molette.js', []],
   ['test_ajouts.js', [tmp]],
+  ['test_fidelite.js', []],
   ...(emf ? [['test_metafichier.js', [emf, path.join(tmp, 'emf.png')]], ['test_plus2.js', [emf, tmp]]] : []),
   ...(pub ? [['test_lecteur.js', [pub]], ['test_editeur.js', [pub, tmp]], ['test_plus.js', [pub, tmp]], ['test_plus3.js', [pub, tmp]]] : [])
 ].filter(([f]) => fs.existsSync(path.join(ici, f)));

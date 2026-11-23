@@ -176,6 +176,14 @@
 
   function svgForme(o, fiche, avecFond) {
     const s = el('svg', { class: 'svg-forme', viewBox: `0 0 ${f2(Math.max(o.w, 0.01))} ${f2(Math.max(o.h, 0.01))}`, preserveAspectRatio: 'none', overflow: 'visible' });
+    // trait horizontal ou vertical (hauteur ou largeur nulle) : étiré à la taille du cadre, il serait aplati
+    // à rien et invisible. On le dessine à sa taille réelle, en mm, avec une marge pour l'épaisseur et les flèches.
+    if (o.w < 0.2 || o.h < 0.2) {
+      const m = 3;
+      s.setAttribute('viewBox', `${-m} ${-m} ${f2(o.w + 2 * m)} ${f2(o.h + 2 * m)}`);
+      s.removeAttribute('preserveAspectRatio');
+      s.style.cssText = `left:${-m}mm;top:${-m}mm;width:${f2(o.w + 2 * m)}mm;height:${f2(o.h + 2 * m)}mm`;
+    }
     const defs = el('defs', {}, s);
     const g = el('g', {}, s);
     if (o.miroirH || o.miroirV) g.setAttribute('transform', `translate(${o.miroirH ? f2(o.w) : 0} ${o.miroirV ? f2(o.h) : 0}) scale(${o.miroirH ? -1 : 1} ${o.miroirV ? -1 : 1})`);

@@ -346,8 +346,29 @@
     return c;
   }
 
+  /* ---------- police Symbol → caractères Unicode ----------
+     L'éditeur d'équations (Équation 3.0, MathType) écrit Σ, σ, ×, ≤… avec la police Symbol, où « å » vaut Σ.
+     On les traduit en vrais caractères : ils s'affichent alors partout, même sans la police Symbol. */
+  const SYMBOL = (() => {
+    const t = {};
+    const grec = 'ΑΒΧΔΕΦΓΗΙϑΚΛΜΝΟΠΘΡΣΤΥςΩΞΨΖ', grecMin = 'αβχδεφγηιϕκλμνοπθρστυϖωξψζ';
+    for (let i = 0; i < 26; i++) { t[65 + i] = grec[i]; t[97 + i] = grecMin[i]; }
+    Object.assign(t, { 0x22: '∀', 0x24: '∃', 0x27: '∋', 0x2A: '∗', 0x2D: '−', 0x40: '≅', 0x5C: '∴', 0x5E: '⊥', 0x60: '‾',
+      0xA1: 'ϒ', 0xA2: '′', 0xA3: '≤', 0xA4: '⁄', 0xA5: '∞', 0xA6: 'ƒ', 0xA7: '♣', 0xA8: '♦', 0xA9: '♥', 0xAA: '♠', 0xAB: '↔', 0xAC: '←', 0xAD: '↑', 0xAE: '→', 0xAF: '↓',
+      0xB0: '°', 0xB1: '±', 0xB2: '″', 0xB3: '≥', 0xB4: '×', 0xB5: '∝', 0xB6: '∂', 0xB7: '•', 0xB8: '÷', 0xB9: '≠', 0xBA: '≡', 0xBB: '≈', 0xBC: '…', 0xBD: '⏐', 0xBE: '⎯', 0xBF: '↵',
+      0xC0: 'ℵ', 0xC1: 'ℑ', 0xC2: 'ℜ', 0xC3: '℘', 0xC4: '⊗', 0xC5: '⊕', 0xC6: '∅', 0xC7: '∩', 0xC8: '∪', 0xC9: '⊃', 0xCA: '⊇', 0xCB: '⊄', 0xCC: '⊂', 0xCD: '⊆', 0xCE: '∈', 0xCF: '∉',
+      0xD0: '∠', 0xD1: '∇', 0xD2: '®', 0xD3: '©', 0xD4: '™', 0xD5: '∏', 0xD6: '√', 0xD7: '⋅', 0xD8: '¬', 0xD9: '∧', 0xDA: '∨', 0xDB: '⇔', 0xDC: '⇐', 0xDD: '⇑', 0xDE: '⇒', 0xDF: '⇓',
+      0xE0: '◊', 0xE1: '〈', 0xE2: '®', 0xE3: '©', 0xE4: '™', 0xE5: '∑', 0xE6: '⎛', 0xE7: '⎜', 0xE8: '⎝', 0xE9: '⎡', 0xEA: '⎢', 0xEB: '⎣', 0xEC: '⎧', 0xED: '⎨', 0xEE: '⎩', 0xEF: '⎪',
+      0xF1: '〉', 0xF2: '∫', 0xF3: '⌠', 0xF4: '⎮', 0xF5: '⌡', 0xF6: '⎞', 0xF7: '⎟', 0xF8: '⎠', 0xF9: '⎤', 0xFA: '⎥', 0xFB: '⎦', 0xFC: '⎫', 0xFD: '⎬', 0xFE: '⎭' });
+    return t;
+  })();
+  const estSymbol = nom => /^symbol$/i.test(nom || '');
+  function versUnicodeSymbol(octets) { let s = ''; for (const b of octets) s += SYMBOL[b] || String.fromCharCode(b); return s; }
+
   /* ---------- WMF ---------- */
-  async function wmf(u8) {
+  // cible : { w, h } (mm) du cadre où l'image est affichée. Comme Windows, on dessine aux proportions du cadre :
+  // les positions suivent le cadre, mais les caractères gardent leur forme (pas de texte étiré).
+  async function wmf(u8, cible) {
     const dv = new DataView(u8.buffer, u8.byteOffset, u8.byteLength);
     let o = 0, bbox = null;
     if (dv.getUint32(0, true) === 0x9AC6CDD7) { bbox = [6, 8, 10, 12].map(d => dv.getInt16(d, true)); o = 22; }
@@ -356,10 +377,20 @@
     const S = etatInitial();
     S.wex = bbox ? bbox[2] - bbox[0] : 1000; S.wey = bbox ? bbox[3] - bbox[1] : 1000;
     S.wox = bbox ? bbox[0] : 0; S.woy = bbox ? bbox[1] : 0;
-    const W = Math.abs(S.wex), H = Math.abs(S.wey);
-    const k = 1600 / Math.max(W, H, 1);
+    // sans en-tête de taille (cas des équations) : la taille du dessin est donnée par son premier SetWindowExt/Org
+    if (!bbox) {
+      for (let q = o, n = 0; q + 6 <= dv.byteLength && n < 400; n++) {
+        const t = dv.getUint32(q, true) * 2, fn = dv.getUint16(q + 4, true);
+        if (t < 6 || fn === 0) break;
+        if (fn === 0x020C) { S.wey = dv.getInt16(q + 6, true); S.wex = dv.getInt16(q + 8, true); break; }
+        if (fn === 0x020B) { S.woy = dv.getInt16(q + 6, true); S.wox = dv.getInt16(q + 8, true); }
+        q += t;
+      }
+    }
+    const W = Math.abs(S.wex) || 1, H = Math.abs(S.wey) || 1;
+    const ratio = cible && cible.w > 0 && cible.h > 0 ? cible.w / cible.h : W / H;
     const c = document.createElement('canvas');
-    c.width = Math.max(1, Math.round(W * k)); c.height = Math.max(1, Math.round(H * k));
+    c.width = Math.max(1, Math.round(ratio >= 1 ? 1600 : 1600 * ratio)); c.height = Math.max(1, Math.round(ratio >= 1 ? 1600 / ratio : 1600));
     const ctx = c.getContext('2d');
     const objets = [];
     const pile = [];
@@ -443,20 +474,29 @@
           if (f === 0x0521) { n = i16(0); so = p + 2; const pad = n + (n & 1); y = i16(2 + pad); x = i16(4 + pad); }
           else { y = i16(0); x = i16(2); n = i16(4); const opt = dv.getUint16(p + 6, true); so = p + 8 + (opt & 6 ? 8 : 0); }
           const octets = u8.subarray(so, so + n);
-          const s = dec ? dec.decode(octets) : String.fromCharCode(...octets);
+          const symbole = estSymbol(St.police.nom);
+          const s = symbole ? versUnicodeSymbol(octets) : dec ? dec.decode(octets) : String.fromCharCode(...octets);
+          // espacement de chaque caractère (ExtTextOut), en unités logiques, s'il est fourni
+          const finTexte = so + n + (n & 1);
+          const ecarts = f === 0x0A32 && finTexte + n * 2 <= o + taille ? Array.from({ length: n }, (_, i) => dv.getInt16(finTexte + i * 2, true)) : null;
           appliquer();
           const m = ctx.getTransform();
           const dx = m.a * x + m.c * y + m.e, dy = m.b * x + m.d * y + m.f;
+          // hauteur de police : échelle verticale ; la largeur suit (comme GDI avec une largeur de police nulle)
           const hpx = Math.max(1, Math.abs(St.police.hauteur) * Math.abs(m.d) * (St.police.hauteur > 0 ? 0.82 : 1));
           ctx.save();
           ctx.setTransform(1, 0, 0, 1, dx, dy);
           if (St.police.angle) ctx.rotate(-St.police.angle * Math.PI / 1800);
-          ctx.font = `${St.police.italique ? 'italic ' : ''}${St.police.gras ? 'bold ' : ''}${hpx}px "${St.police.nom}"`;
+          const famille = symbole ? '"Times New Roman", "Cambria Math", "Segoe UI Symbol", serif' : `"${St.police.nom}"`;
+          ctx.font = `${St.police.italique ? 'italic ' : ''}${St.police.gras ? 'bold ' : ''}${hpx}px ${famille}`;
           ctx.fillStyle = St.texte;
           const a = St.alignTexte;
           ctx.textAlign = (a & 6) === 6 ? 'center' : (a & 2) ? 'right' : 'left';
           ctx.textBaseline = (a & 24) === 24 ? 'alphabetic' : (a & 8) ? 'bottom' : 'top';
-          ctx.fillText(s, 0, 0);
+          if (ecarts && ctx.textAlign === 'left' && s.length === n && n > 1) {
+            let cx = 0;
+            for (let i = 0; i < n; i++) { ctx.fillText(s[i], cx, 0); cx += ecarts[i] * Math.abs(m.a); }
+          } else ctx.fillText(s, 0, 0);
           ctx.restore();
           break;
         }
@@ -483,14 +523,15 @@
   }
 
   // data:image/x-emf[;z=1];base64,… -> data:image/png;base64,…
-  async function versPNG(url) {
+  // cible (facultatif) : { w, h } en mm, taille du cadre où l'image est affichée
+  async function versPNG(url, cible) {
     const m = /^data:image\/x-(emf|wmf)(;z=1)?;base64,(.*)$/.exec(url);
     if (!m) return null;
     const bin = atob(m[3]);
     let u8 = new Uint8Array(bin.length);
     for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
     if (m[2]) u8 = await inflate(u8);
-    const c = m[1] === 'emf' ? await emf(u8) : await wmf(u8);
+    const c = m[1] === 'emf' ? await emf(u8) : await wmf(u8, cible);
     return c.toDataURL('image/png');
   }
 

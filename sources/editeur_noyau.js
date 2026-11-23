@@ -487,7 +487,10 @@ function definirZoom(z, ancre) {
 }
 function zoomPage() {
   const def = $('#defile');
-  const z = Math.min((def.clientWidth - 40) / (E.fiche.page.w * PX_MM), (def.clientHeight - 30) / (E.fiche.page.h * PX_MM));
+  // mêmes marges que majScene (au moins MARGE_SCENE à gauche et à droite, 0,6 × MARGE_SCENE en haut et en bas) :
+  // sinon le bas de la page dépasse de la zone et paraît rogné
+  const nbPages = indexVoisine() != null ? 2 : 1;
+  const z = Math.min((def.clientWidth - 2 * MARGE_SCENE - 4) / (nbPages * E.fiche.page.w * PX_MM), (def.clientHeight - 2 * MARGE_SCENE * 0.6 - 4) / (E.fiche.page.h * PX_MM));
   definirZoom(z);
   centrerVue();
 }
