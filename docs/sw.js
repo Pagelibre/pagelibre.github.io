@@ -1,5 +1,5 @@
 /* PageLibre : service worker (cache d'abord, version du cache = version de l'application) */
-const CACHE = 'pagelibre-2026-11-24-01-33';
+const CACHE = 'pagelibre-2026-11-24-01-39';
 const FICHIERS = ['./', './index.html', './manifest.webmanifest', './logo.svg', './logo-petit.svg', './icons/icon-192.png', './icons/icon-512.png', './icons/maskable-512.png', './confidentialite.html'];
 
 self.addEventListener('install', ev => {

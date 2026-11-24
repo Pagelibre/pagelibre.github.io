@@ -21,6 +21,9 @@ function verifier(c, m) { if (c) { ok++; console.log('  ok  ', m); } else { ko++
     await e.ouvrir(URL_EDITEUR);
     await attendre(600);
     await e.envoyer('Performance.enable');
+    // réglage « animations » du système imposé : les machines de GitHub les ont coupées
+    const mouvement = v => e.envoyer('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: v }] });
+    await mouvement(process.env.MOUVEMENT || 'no-preference');
     const couvre = largeur => e.eval(`(async () => {
       $('#indic-sauvegarde').textContent = 'Document téléchargé : « Un nom de fichier vraiment très long pour essayer.pagelibre » (dossier Téléchargements)';
       $('#bouton-installer').hidden = false;
@@ -97,6 +100,15 @@ function verifier(c, m) { if (c) { ok++; console.log('  ok  ', m); } else { ko++
       verifier(fin[0] >= 0 && fin[0] <= 132 && fin[1] === 0 && ['repos', 'cligne'].includes(fin[2]), `scène ${k + 1} : va au bout (${fin.join(', ')})`);
     }
     await e.eval(`MASCOTTE.VITESSE = 38; MASCOTTE.SCENES = MASCOTTE.SCENES_ESSAI; MASCOTTE.prochaine = Date.now() + 1e7; mascotte('repos')`);
+
+    /* animations coupées dans Windows : elle change d'expression, mais ne se promène pas */
+    await mouvement('reduce');
+    await e.eval(`mascotte('repos'); MASCOTTE.prochaine = 0; suiteMascotte()`);
+    const calmee = await e.eval(`[MASCOTTE.suite.length, MASCOTTE.etat, MASCOTTE.x]`);
+    await e.eval(`mascotte('fier')`);
+    verifier(calmee[0] === 0 && calmee[1] !== 'marche' && await e.eval(`MASCOTTE.suite.length === 0 && MASCOTTE.el.dataset.yeux === 'joyeux' && MASCOTTE.el.getAnimations({ subtree: true }).length === 0`), 'animations coupées dans Windows : des expressions, aucun mouvement');
+    await mouvement('no-preference');
+    await e.eval(`MASCOTTE.prochaine = Date.now() + 1e7; mascotte('repos')`);
 
     /* sans rien faire : bâille, s'endort, puis plus aucun calcul ; se réveille à la première action */
     await e.eval(`MASCOTTE.dernier = Date.now() - 61000; MASCOTTE.baille = false; suiteMascotte()`);
