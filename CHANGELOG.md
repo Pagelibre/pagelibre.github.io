@@ -1,5 +1,10 @@
 # Nouveautés de PageLibre
 
+## 1.4.0 (24/11/2026)
+
+- PageLibre a sa mascotte : un avocat avec sa fiche et son crayon, nouveau logo de l’application.
+- À droite du bandeau bleu, la mascotte se promène et s’anime selon ce que vous faites : elle prend des notes, s’étonne, bâille, s’endort… Pour la masquer : Affichage › Mascotte, ou clic droit dessus.
+
 ## 1.3.0 (23/11/2026)
 
 - Nouveau : PDF en un clic (bouton PDF en haut à gauche, ou Fichier › Exporter) : texte net, recherche et copie, traits de coupe possibles.

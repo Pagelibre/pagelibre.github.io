@@ -165,6 +165,7 @@ function exporterFormat(format) {
   quitterEdition();
   const [contenu, type] = contenuFormat(format);
   telecharger(contenu, nomPropose(format), type);
+  mascotte('montre');
 }
 function telecharger(contenu, nom, type) {
   const a = document.createElement('a');
@@ -179,7 +180,9 @@ function marquerEnregistre(msg) {
   majTitre();
   effacerBrouillon();
   fermerCoulisses();
+  mascotte('fier');
   $('#indic-sauvegarde').textContent = msg;
+  $('#indic-sauvegarde').title = msg;
   setTimeout(() => { if ($('#indic-sauvegarde').textContent === msg) $('#indic-sauvegarde').textContent = ''; }, 6000);
 }
 
@@ -345,7 +348,7 @@ function afficherVueCoulisses(vue) {
     };
   } else if (vue === 'apropos') {
     c.innerHTML = `<h1>À propos</h1>
-      <div style="display:flex;gap:18px;align-items:center;margin-bottom:12px"><span style="width:64px;height:64px;display:inline-block">${LOGO_SVG}</span>
+      <div style="display:flex;gap:18px;align-items:center;margin-bottom:12px"><span style="width:96px;height:96px;display:inline-block">${LOGO_SVG}</span>
         <div><div style="font-size:24px;font-weight:600;color:#23405e">PageLibre</div><div style="color:#666">Version ${esc(VERSION_NOM)} (${esc(VERSION_EDITEUR.replace('T', ' à '))}) · <button class="lien-bouton" data-nouveautes>Quoi de neuf ?</button></div></div></div>
       <p>Logiciel libre et gratuit de mise en page : affiches, fiches, brochures, attestations. Il fonctionne dans le navigateur, s'installe comme une application et marche hors connexion.</p>
       <p><b>Vos documents restent sur votre appareil</b> : rien n'est envoyé sur Internet. <a href="confidentialite.html" target="_blank" rel="noopener">Confidentialité</a></p>
@@ -428,6 +431,7 @@ function demarrer() {
   initDepot();
   initPWA();
   initPlus4();
+  initMascotte();
   chargerFiche(E.fiche,{ nom: fiche ? decodeURIComponent(location.pathname.split('/').pop() || '') : null });
   appliquerOptions();
   noterOutil(!!fiche);

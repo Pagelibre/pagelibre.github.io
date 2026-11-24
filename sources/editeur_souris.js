@@ -707,6 +707,7 @@ function supprimerSelection() {
   ids.forEach(id => { const el = elementObjet(id); if (el) el.remove(); });
   E.sel = [];
   apres();
+  mascotte('surpris');
 }
 function dupliquer() {
   if (!E.sel.length) return;

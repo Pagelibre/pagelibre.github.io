@@ -63,7 +63,7 @@ function construireRuban() {
         col(`<label class="btn"><input type="checkbox" data-opt="volet"> Volet Pages</label>`,
           `<label class="btn"><input type="checkbox" data-opt="magnetisme"> Magnétisme</label>`,
           `<label class="btn"><input type="checkbox" data-opt="deuxPages"> Deux pages côte à côte</label>`) +
-        col(`<label class="btn" title="Sans cocher : Ctrl+molette pour zoomer, molette seule pour défiler (comme en PAO)"><input type="checkbox" data-opt="zoomMolette"> Zoom avec la molette seule</label>`)) +
+        col(`<label class="btn" title="L'avocat du bandeau bleu"><input type="checkbox" data-opt="mascotte"> Mascotte</label>`, `<label class="btn" title="Sans cocher : Ctrl+molette pour zoomer, molette seule pour défiler (comme en PAO)"><input type="checkbox" data-opt="zoomMolette"> Zoom avec la molette seule</label>`)) +
       groupe('Zoom', grand('zoomPage', 'pageEntiere', 'Page entière') + grand('zoomLargeur', 'largeurPage', 'Largeur de page') + grand('zoom100', 'zoom100', '100 %') +
         col(petit('zoomPlus', '', '＋ Zoom avant'), petit('zoomMoins', '', '－ Zoom arrière'))) +
       groupe('Vérifier', grand('verifierAccessibilite', 'accessibilite', 'Accessibilité', { titre: 'Vérifier l\'accessibilité : images non décrites, textes trop petits ou peu contrastés' }) +
@@ -244,6 +244,7 @@ function appliquerOptions() {
   app.classList.toggle('limites', E.options.limites);
   $('#zone').classList.toggle('sans-regles', !E.options.regles);
   $('#corps').classList.toggle('sans-volet', !E.options.volet);
+  masquerOuAfficherMascotte();
   $$('[data-opt]').forEach(c => { c.checked = !!E.options[c.dataset.opt]; });
   try { localStorage.setItem('pagelibre-options', JSON.stringify(E.options)); } catch (e) { /* stockage indisponible */ }
   majScene();
@@ -550,7 +551,7 @@ function ouvrirBoite(titre, corps, surOK, opt = {}) {
   setTimeout(() => premier.focus(), 0);
 }
 function fermerBoite() { $('#boite').hidden = true; $('#voile').hidden = true; }
-function alerte(msg) { ouvrirBoite('PageLibre', `<p style="max-width:440px">${esc(msg)}</p>`, null, { sansAnnuler: true }); }
+function alerte(msg) { mascotte('oups'); ouvrirBoite('PageLibre', `<p style="max-width:440px">${esc(msg)}</p>`, null, { sansAnnuler: true }); }
 function confirmer(msg, ok) { ouvrirBoite('Confirmation', `<p style="max-width:440px">${esc(msg)}</p>`, () => { ok(); }, { ok: 'Oui' }); }
 function indication(msg) {
   const b = $('#bandeau');
@@ -699,6 +700,7 @@ async function insererImageFichier(fichier, pos) {
     redessinerObjet(o);
     E.sel = [o.id];
     apres();
+    mascotte('content');
   } catch (e) { alerte('Impossible de lire cette image.'); }
 }
 function changerImage() {

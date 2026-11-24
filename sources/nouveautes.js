@@ -3,6 +3,13 @@
    Le numéro de version (VERSION_NOM) vient de depot/package.json : le changer à chaque publication. */
 const NOUVEAUTES = [
   {
+    version: '1.4.0', date: '24/11/2026',
+    points: [
+      'PageLibre a sa mascotte : un avocat avec sa fiche et son crayon, nouveau logo de l’application.',
+      'À droite du bandeau bleu, la mascotte se promène et s’anime selon ce que vous faites : elle prend des notes, s’étonne, bâille, s’endort… Pour la masquer : Affichage › Mascotte, ou clic droit dessus.'
+    ]
+  },
+  {
     version: '1.3.0', date: '23/11/2026',
     points: [
       'Nouveau : PDF en un clic (bouton PDF en haut à gauche, ou Fichier › Exporter) : texte net, recherche et copie, traits de coupe possibles.',

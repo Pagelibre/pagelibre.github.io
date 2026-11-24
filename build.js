@@ -14,7 +14,10 @@ const d = new Date();
 const p2 = n => String(n).padStart(2, '0');
 const VERSION = `${d.getFullYear()}-${p2(d.getMonth() + 1)}-${p2(d.getDate())}T${p2(d.getHours())}:${p2(d.getMinutes())}`;
 
+// mascotte : l'avocat avec sa fiche et son crayon ; version simplifiée pour les petites tailles (barre de titre, onglet)
 const LOGO = S('web/logo.svg').trim();
+const LOGO_PETIT = S('web/logo-petit.svg').trim();
+const MASCOTTE = S('web/mascotte.svg').trim(); // animée, en bas du volet Pages (mascotte.js)
 
 // polices libres aux mêmes mesures que les polices Office, déclarées sous le nom d'origine :
 // la police installée est prise si elle existe (local), sinon la police libre intégrée.
@@ -39,7 +42,7 @@ function cssPolices() {
   return `/* Polices libres intégrées (${POLICES_LIBRES.map(p => p[0] + ' pour ' + p[1]).join(', ')}).\n` + fs.readFileSync(path.join(dossier, 'LICENCE.txt'), 'utf8').replace(/\*\//g, '* /') + '\n*/\n' + regles.join('\n') + '\n';
 }
 const CSS_RENDU = cssPolices() + S('rendu.css');
-const CSS = S('editeur.css');
+const CSS = S('editeur.css') + S('mascotte.css');
 // numéro de version lisible (1.1.0…) : celui de depot/package.json
 // (dossier de travail : depot/package.json ; dépôt public : package.json à la racine)
 const fichierPaquet = [path.join(ici, 'depot', 'package.json'), path.join(ici, 'package.json')].find(fs.existsSync);
@@ -49,10 +52,11 @@ const entete = [
   `const VERSION_NOM = '${VERSION_NOM}';`,
   `const DEPOT_URL = ${JSON.stringify(config.depot || '')};`,
   `const LIEN_SOUTIEN = ${JSON.stringify(config.soutien || '')};`,
-  `const LOGO_SVG = ${JSON.stringify(LOGO)};`
+  `const LOGO_SVG = ${JSON.stringify(LOGO)};`,
+  `const MASCOTTE_SVG = ${JSON.stringify(MASCOTTE)};`
 ].join('\n');
 const JS = entete + '\n' + ['securite.js', 'lecteur_pub.js', 'rendu.js', 'metafichier.js', 'icones.js', 'editeur_noyau.js', 'editeur_texte.js', 'editeur_tableau.js',
-  'editeur_souris.js', 'editeur_ruban.js', 'editeur_plus.js', 'editeur_plus2.js', 'editeur_plus3.js', 'nouveautes.js', 'editeur_plus4.js', 'editeur_motifs.js', 'editeur_plus5.js', 'export_commun.js', 'export_docx.js', 'export_pdf.js', 'pwa.js', 'editeur_fichier.js']
+  'editeur_souris.js', 'editeur_ruban.js', 'editeur_plus.js', 'editeur_plus2.js', 'editeur_plus3.js', 'nouveautes.js', 'editeur_plus4.js', 'editeur_motifs.js', 'editeur_plus5.js', 'export_commun.js', 'export_docx.js', 'export_pdf.js', 'pwa.js', 'mascotte.js', 'editeur_fichier.js']
   .map(n => `/* ==== ${n} ==== */\n` + S(n)).join('\n');
 
 // contrôle de syntaxe : une apostrophe oubliée rendrait toute l'application muette (déjà arrivé) ; on n'écrit rien dans ce cas
@@ -63,7 +67,8 @@ if (/<\/style/i.test(CSS + CSS_RENDU)) throw new Error('Le CSS contient « </sty
 let page = S('page.html')
   .replace('/*CSSRENDU*/', () => CSS_RENDU)
   .replace('/*CSS*/', () => CSS)
-  .replace('/*LOGO*/', () => LOGO)
+  .replace('/*LOGO*/', () => LOGO_PETIT)
+  .replace('/*ICONE*/', () => 'data:image/svg+xml;base64,' + Buffer.from(LOGO_PETIT).toString('base64'))
   .replace('/*JS*/', () => JS)
   .replace(/\r\n/g, '\n'); // le navigateur ramène les fins de ligne à \n avant de calculer l'empreinte
 
@@ -84,7 +89,7 @@ const docs = path.join(ici, 'docs');
 fs.mkdirSync(path.join(docs, 'icons'), { recursive: true });
 fs.writeFileSync(path.join(docs, 'index.html'), page, 'utf8');
 fs.writeFileSync(path.join(docs, 'sw.js'), S('web/sw.js').replace('/*VERSION*/', VERSION.replace(/[:T]/g, '-')), 'utf8');
-for (const f of ['manifest.webmanifest', 'logo.svg', 'confidentialite.html']) fs.copyFileSync(path.join(ici, 'sources', 'web', f), path.join(docs, f));
+for (const f of ['manifest.webmanifest', 'logo.svg', 'logo-petit.svg', 'confidentialite.html']) fs.copyFileSync(path.join(ici, 'sources', 'web', f), path.join(docs, f));
 fs.copyFileSync(path.join(ici, 'sources', 'polices', 'LICENCE.txt'), path.join(docs, 'licence-polices.txt'));
 // lecteur de PDF (pdf.js de Mozilla, Apache 2.0) : chargé à la demande par le site
 fs.cpSync(path.join(ici, 'sources', 'vendor'), path.join(docs, 'vendor'), { recursive: true });

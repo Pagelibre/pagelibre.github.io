@@ -1,0 +1,63 @@
+/* Mascotte du bandeau bleu : une expression et une pose à la fois (attributs posés par mascotte.js).
+   Elle marche sur le bord du ruban, dans un couloir de 200 px à droite ; rien n'en sort (overflow).
+   Aucun mouvement en boucle : des gestes courts, rien entre deux. */
+#barre-titre { position: relative; }
+#mascotte { position: absolute; right: 8px; top: 0; width: 200px; height: 60px; overflow: hidden; contain: strict; pointer-events: none; user-select: none; z-index: 2; }
+#mascotte[hidden] { display: none; }
+#mascotte .m-perso { position: absolute; left: 0; bottom: 0; width: 68px; height: 57px; transition: transform 0s linear; }
+#mascotte svg { width: 68px; height: 57px; overflow: hidden; display: block; pointer-events: auto; cursor: default; }
+/* le message de sauvegarde et le bouton Installer laissent le couloir libre */
+.titre-droite { min-width: 0; max-width: 100%; }
+#indic-sauvegarde { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.bouton-installer { white-space: nowrap; flex: none; }
+#app.avec-mascotte .titre-droite { padding-right: 216px; }
+@media (max-width: 999px) { #mascotte { display: none; } #app.avec-mascotte .titre-droite { padding-right: 12px; } }
+#mascotte .m-e, #mascotte .m-b, #mascotte .m-p, #mascotte .m-x { display: none; }
+#mascotte .m-tout { transform-box: fill-box; transform-origin: 50% 100%; }
+#mascotte .m-cligne { transform-origin: 32px 29.5px; }
+#mascotte .m-bras-crayon { transform-origin: 49.6px 44.8px; }
+#mascotte .m-bras-fiche { transform-origin: 14.4px 44.8px; }
+/* poses */
+#mascotte[data-pose="debout"] .m-debout, #mascotte[data-pose="ecrit"] .m-ecrit, #mascotte[data-pose="dort"] .m-dort { display: inline; }
+/* expressions */
+#mascotte[data-yeux="yeux"] .m-yeux, #mascotte[data-yeux="ronds"] .m-ronds, #mascotte[data-yeux="joyeux"] .m-joyeux, #mascotte[data-yeux="clos"] .m-clos,
+#mascotte[data-bouche="sourire"] .m-sourire, #mascotte[data-bouche="oh"] .m-oh, #mascotte[data-bouche="baille"] .m-baille, #mascotte[data-bouche="petite"] .m-petite, #mascotte[data-bouche="oups"] .m-oups,
+#mascotte[data-effet="zzz"] .m-zzz, #mascotte[data-effet="eclats"] .m-eclats, #mascotte[data-effet="goutte"] .m-goutte, #mascotte[data-effet="larme"] .m-larme { display: inline; }
+/* regard : d'un côté, vers la page (en bas à gauche), ou vers la fiche qu'il écrit */
+#mascotte[data-regard="droite"] .m-visage { transform: translate(2px, 0); }
+#mascotte[data-regard="gauche"] .m-visage { transform: translate(-2px, 0); }
+#mascotte[data-regard="page"] .m-visage { transform: translate(-1.6px, 1.2px); }
+#mascotte[data-regard="bas"] .m-visage { transform: translate(0, 1.2px); }
+/* marche : deux images (un pied levé, puis l'autre), changées par mascotte.js */
+#mascotte[data-pas="1"] .m-pied-g, #mascotte[data-pas="2"] .m-pied-d { transform: translateY(-1.8px); }
+#mascotte[data-pas="1"] .m-tout { transform: rotate(2.5deg); }
+#mascotte[data-pas="2"] .m-tout { transform: rotate(-2.5deg); }
+/* prend des notes : trois images, changées au rythme de la frappe */
+#mascotte .m-l1, #mascotte .m-l2 { display: none; }
+#mascotte[data-temps="1"] .m-l1, #mascotte[data-temps="2"] .m-l1, #mascotte[data-temps="3"] .m-l1, #mascotte[data-temps="3"] .m-l2 { display: inline; }
+#mascotte[data-temps="1"] .m-main-ecrit { transform: translate(-2.5px, -2px); }
+#mascotte[data-temps="2"] .m-main-ecrit { transform: translate(-.5px, -1px); }
+#mascotte[data-temps="3"] .m-main-ecrit { transform: translate(-3.5px, .6px); }
+/* gestes */
+@media (prefers-reduced-motion: no-preference) {
+  #mascotte[data-geste="cligne"] .m-cligne { animation: m-cligne .18s ease-in-out; }
+  #mascotte[data-geste="saute"] .m-tout { animation: m-saute .6s ease-out; }
+  #mascotte[data-geste="sursaute"] .m-tout { animation: m-sursaute .4s ease-out; }
+  #mascotte[data-geste="etire"] .m-tout { animation: m-etire 1.8s ease-in-out; }
+  #mascotte[data-geste="montre"] .m-bras-fiche { animation: m-montre 1.2s ease-in-out; }
+  #mascotte[data-geste="coucou"] .m-bras-crayon { animation: m-coucou 1.1s ease-in-out; }
+  #mascotte[data-geste="non"] .m-tout { animation: m-non .5s ease-in-out; }
+  #mascotte[data-geste="respire"] .m-tout { animation: m-respire 2s ease-in-out; }
+  #mascotte[data-geste="respire"] .m-zzz path { animation: m-z 2s ease-in-out backwards; }
+  #mascotte[data-geste="respire"] .m-zzz path:nth-child(2) { animation-delay: .25s; }
+  #mascotte[data-geste="respire"] .m-zzz path:nth-child(3) { animation-delay: .5s; }
+}
+@keyframes m-cligne { 50% { transform: scaleY(.08); } }
+@keyframes m-saute { 30% { transform: translateY(-5px); } 60% { transform: translateY(0) scale(1.03, .97); } 78% { transform: translateY(-2px); } }
+@keyframes m-sursaute { 30% { transform: translateY(-2.5px) scale(.97, 1.03); } }
+@keyframes m-etire { 45%, 60% { transform: scale(.96, 1.03); } }
+@keyframes m-montre { 25%, 75% { transform: translateY(-4px) rotate(7deg); } 50% { transform: translateY(-4px) rotate(1deg); } }
+@keyframes m-coucou { 20%, 60% { transform: rotate(-16deg); } 40%, 80% { transform: rotate(5deg); } }
+@keyframes m-non { 25%, 75% { transform: rotate(-3deg); } 50% { transform: rotate(3deg); } }
+@keyframes m-respire { 50% { transform: scale(1.02, .985); } }
+@keyframes m-z { from { opacity: 0; } 60% { opacity: 1; } }

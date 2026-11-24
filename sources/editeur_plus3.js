@@ -57,6 +57,7 @@ async function imprimerAvecOptions(coupe) {
   if (!st) { st = document.createElement('style'); st.id = 'style-impression'; document.head.appendChild(st); }
   st.textContent = `@page { size: ${P.w + 2 * M}mm ${P.h + 2 * M}mm; margin: 0; }`;
   window.addEventListener('afterprint', libererPages, { once: true });
+  mascotte('montre');
   window.print();
 }
 
@@ -103,6 +104,7 @@ async function exporterImages(toutes, dpi) {
         setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 3000);
       }
     }
+    mascotte('montre');
     bandeau(`${feuilles.length} image(s) PNG exportée(s)${dossier ? ` dans « ${dossier.name} »` : ' (dossier Téléchargements)'}.`);
   } catch (e) {
     alerte('Export impossible : ' + e.message);

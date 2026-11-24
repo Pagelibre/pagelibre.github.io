@@ -589,6 +589,9 @@ function vueAide(c) {
       <li><b>Secteur</b> de diagramme : dans les formes ; les poignées jaunes règlent les angles.</li>
       <li><b>Bordure décorative</b> : Format › Contour. <b>Petites capitales</b> : bouton Aᴀ de l'onglet Accueil.</li>
       <li><b>Habillage</b> : le texte contourne l'objet (carré), ou suit sa forme (serré).</li></ul></details>
+    <details><summary>L'avocat du bandeau bleu</summary>
+      <ul><li>C'est la mascotte : elle se promène, prend des notes quand vous écrivez, s'étonne quand vous supprimez, s'endort si vous ne faites rien… Elle ne s'imprime pas et n'est pas dans vos documents.</li>
+      <li>Pour la masquer ou la remettre : <b>Affichage › Mascotte</b>, ou clic droit dessus. Elle se cache aussi quand la fenêtre est étroite.</li></ul></details>
     <details><summary>Images et fichiers</summary>
       <ul><li>Les images sont <b>allégées</b> à l'insertion. Image › <b>Compresser les images</b> réduit tout le document (pour un mail ou l'ENT).</li>
       <li>Insertion › <b>Pages d'un PDF</b> : chaque page d'un PDF devient le fond d'une page, pour écrire par-dessus. Création de page › <b>Image de fond</b> fait de même avec une image (document scanné).</li>

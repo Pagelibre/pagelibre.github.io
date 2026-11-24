@@ -1,6 +1,6 @@
 /* PageLibre : service worker (cache d'abord, version du cache = version de l'application) */
-const CACHE = 'pagelibre-2026-11-23-22-16';
-const FICHIERS = ['./', './index.html', './manifest.webmanifest', './logo.svg', './icons/icon-192.png', './icons/icon-512.png', './icons/maskable-512.png', './confidentialite.html'];
+const CACHE = 'pagelibre-2026-11-24-01-33';
+const FICHIERS = ['./', './index.html', './manifest.webmanifest', './logo.svg', './logo-petit.svg', './icons/icon-192.png', './icons/icon-512.png', './icons/maskable-512.png', './confidentialite.html'];
 
 self.addEventListener('install', ev => {
   ev.waitUntil(caches.open(CACHE).then(c => c.addAll(FICHIERS)));

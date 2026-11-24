@@ -922,6 +922,7 @@ async function exporterPDF(coupe) {
   try {
     const { blob, remarques, infos } = await ExportPDF.fabriquer(null, { coupe: !!coupe, progres: (k, t) => { const s = $('#bandeau span'); if (s && t > 3) s.textContent = `Préparation du PDF : page ${k} sur ${t}…`; } });
     telecharger(blob, nomPropose('pdf'), blob.type);
+    mascotte('montre');
     bandeau('PDF téléchargé : « ' + nomPropose('pdf') + ' ».' + (infos.bitmap ? ' Une partie du texte est en image haute définition, faute d’accès à sa police : acceptez la lecture des polices installées quand le navigateur la demande.' : '') + (remarques.length ? ' À savoir : ' + remarques.join(' ; ') + '.' : ''));
   } catch (e) {
     console.error(e);

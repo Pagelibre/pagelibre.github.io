@@ -22,7 +22,7 @@ const E = {
   dessin: null,     // mode insertion : { type, forme }
   cellules: [],     // cellules de tableau choisies (indices) pendant l'édition
   presse: null,     // presse-papiers interne
-  options: { regles: true, reperes: true, limites: true, volet: true, magnetisme: true },
+  options: { regles: true, reperes: true, limites: true, volet: true, magnetisme: true, mascotte: true },
   feuille: null, calque: null, ox: 0, oy: 0
 };
 
@@ -121,6 +121,7 @@ function annuler() {
   if (!E.histo.length) return;
   E.refaire.push(instantane());
   restaurer(E.histo.pop());
+  mascotte('oups');
 }
 function refaire() {
   if (E.edition) { document.execCommand('redo'); return; }
@@ -436,6 +437,7 @@ function choisir(ids, ajouter) {
   E.sel = ajouter ? [...new Set([...E.sel, ...ids])] : [...ids];
   majSelectionUI();
   majRuban();
+  if (E.sel.length) mascotte('regarde');
 }
 function deselectionner() { quitterEdition(); E.sel = []; E.cellules = []; majSelectionUI(); majRuban(); }
 
@@ -650,6 +652,7 @@ function insererPage(dupliquer) {
   dessinerVignettes();
   afficherPage();
   apres();
+  mascotte('content');
 }
 function supprimerPage() {
   if (E.modeMaitre) {

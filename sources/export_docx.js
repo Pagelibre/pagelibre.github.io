@@ -657,6 +657,7 @@ async function exporterWord() {
   try {
     const { blob, remarques } = await ExportDocx.fabriquer();
     telecharger(blob, nomPropose('docx'), blob.type);
+    mascotte('montre');
     bandeau('Document Word téléchargé : « ' + nomPropose('docx') + ' ».' + (remarques.length ? ' À savoir : ' + remarques.join(' ; ') + '.' : ''));
   } catch (e) {
     console.error(e);

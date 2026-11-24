@@ -24,6 +24,7 @@ if (process.platform === 'win32') {
 const tests = [
   ['test_securite.js', []],
   ['test_pwa.js', [tmp]],
+  ['test_mascotte.js', [tmp]],
   ['test_molette.js', []],
   ['test_ajouts.js', [tmp]],
   ['test_fidelite.js', []],

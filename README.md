@@ -1,3 +1,5 @@
+<img src="sources/web/logo.svg" alt="La mascotte de PageLibre : un avocat avec une fiche et un crayon" width="120" align="right">
+
 # PageLibre
 
 **Logiciel libre et gratuit de mise en page, dans le navigateur.**
